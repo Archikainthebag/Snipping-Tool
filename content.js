@@ -33,19 +33,27 @@ class SnippingTool {
   }
 
   handleMessage(request, sender, sendResponse) {
+    console.log('Content script received message:', request.action);
     switch (request.action) {
       case 'activate-snipping':
         if (this.isEnabled) {
+          console.log('Activating snipping tool');
           this.activate();
+        } else {
+          console.log('Snipping tool is disabled');
         }
         sendResponse({ success: true });
         break;
       case 'toggle-state':
         this.isEnabled = request.isEnabled;
+        console.log('Toggle state:', this.isEnabled);
         if (!this.isEnabled && this.isActive) {
           this.deactivate();
         }
         sendResponse({ success: true });
+        break;
+      case 'ping':
+        sendResponse({ success: true, active: this.isActive, enabled: this.isEnabled });
         break;
     }
   }
@@ -166,6 +174,9 @@ class SnippingTool {
     } else if (e.key === 'Enter' && this.hasSelection()) {
       this.saveToClipboard();
     }
+    
+    // Handle advanced keyboard shortcuts
+    this.handleAdvancedKeyboard(e);
   }
 
   updateSelection() {

@@ -70,18 +70,33 @@ class SnippingToolBackground {
     if (!this.isEnabled) return;
 
     try {
-      // Inject content script if not already injected
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ['content.js']
-      });
-
-      // Send activation message
-      await chrome.tabs.sendMessage(tab.id, {
-        action: 'activate-snipping'
-      });
+      // Try to send activation message first
+      // If content script is already loaded, this will work
+      try {
+        await chrome.tabs.sendMessage(tab.id, {
+          action: 'activate-snipping'
+        });
+      } catch (messageError) {
+        // If message fails, try to inject content script and then send message
+        console.log('Content script not found, injecting...');
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js']
+        });
+        
+        // Wait a bit for the script to initialize
+        setTimeout(async () => {
+          try {
+            await chrome.tabs.sendMessage(tab.id, {
+              action: 'activate-snipping'
+            });
+          } catch (retryError) {
+            console.error('Failed to activate snipping after injection:', retryError);
+          }
+        }, 100);
+      }
     } catch (error) {
-      console.error('Error injecting content script:', error);
+      console.error('Error activating snipping:', error);
     }
   }
 
@@ -105,6 +120,14 @@ class SnippingToolBackground {
 
   async handleMessage(request, sender, sendResponse) {
     switch (request.action) {
+      case 'activate-snipping':
+        await this.activateSnippingOnCurrentTab();
+        sendResponse({ success: true });
+        break;
+      case 'toggle-snipping':
+        await this.toggleSnipping();
+        sendResponse({ success: true });
+        break;
       case 'capture-screenshot':
         await this.captureScreenshot(request, sender, sendResponse);
         await this.trackUsage('capture'); // Track usage
