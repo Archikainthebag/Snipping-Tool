@@ -711,6 +711,120 @@ body {
   color: var(--text-muted);
 }
 
+/* Enhanced Installation Modal Styles */
+.enhanced-chrome-install {
+  max-width: 600px;
+}
+
+.install-method {
+  background: rgba(20, 184, 166, 0.1);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  backdrop-filter: var(--glass-blur);
+}
+
+.install-btn {
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(20, 184, 166, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.install-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(20, 184, 166, 0.4);
+}
+
+.method-desc {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-top: 10px;
+  font-style: italic;
+}
+
+.install-steps {
+  background: rgba(15, 23, 42, 0.3);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.install-steps ol {
+  margin-left: 20px;
+  color: var(--text-secondary);
+}
+
+.install-steps li {
+  margin: 10px 0;
+  line-height: 1.6;
+}
+
+.install-steps strong {
+  color: var(--primary-color);
+}
+
+.install-steps code {
+  background: rgba(20, 184, 166, 0.2);
+  color: var(--primary-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.troubleshooting {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 15px;
+  margin: 20px 0;
+}
+
+.troubleshooting h5 {
+  color: #fca5a5;
+  margin-bottom: 10px;
+}
+
+.troubleshooting ul {
+  margin-left: 20px;
+  color: var(--text-secondary);
+}
+
+.troubleshooting li {
+  margin: 5px 0;
+}
+
+.safety-guarantee {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  padding: 15px;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.safety-guarantee h5 {
+  color: #6ee7b7;
+  margin-bottom: 8px;
+}
+
+.safety-guarantee p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .nav-links {
@@ -750,5 +864,14 @@ body {
     width: 95%;
     margin: 10% auto;
     padding: 30px 20px;
+  }
+
+  .enhanced-chrome-install {
+    max-width: 100%;
+  }
+
+  .install-btn {
+    font-size: 14px;
+    padding: 10px 20px;
   }
 }

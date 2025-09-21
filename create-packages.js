@@ -36,6 +36,9 @@ class PackageCreator {
   async init() {
     console.log('🚀 Creating Advanced Snipping Tool packages...\n');
     
+    // Validate all required files exist
+    await this.validateRequiredFiles();
+    
     // Create directories
     this.ensureDirectories();
     
@@ -58,6 +61,75 @@ class PackageCreator {
     });
   }
 
+  async validateRequiredFiles() {
+    console.log('🔍 Validating required files...');
+    
+    const missingFiles = [];
+    
+    for (const file of this.coreFiles) {
+      const filePath = path.join(this.sourceDir, file);
+      if (!fs.existsSync(filePath)) {
+        missingFiles.push(file);
+      } else {
+        // Special validation for PNG files
+        if (file.endsWith('.png')) {
+          const stats = fs.statSync(filePath);
+          if (stats.size < 100) { // PNG files should be at least 100 bytes
+            missingFiles.push(`${file} (invalid - file too small: ${stats.size} bytes)`);
+          }
+        }
+        // Validate manifest.json
+        if (file === 'manifest.json') {
+          try {
+            const manifest = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            if (!manifest.manifest_version || !manifest.name || !manifest.version) {
+              missingFiles.push(`${file} (invalid - missing required fields)`);
+            }
+          } catch (error) {
+            missingFiles.push(`${file} (invalid JSON: ${error.message})`);
+          }
+        }
+      }
+    }
+    
+    if (missingFiles.length > 0) {
+      console.error('❌ Missing or invalid files:');
+      missingFiles.forEach(file => console.error(`   • ${file}`));
+      
+      // Try to generate icons if they're missing
+      if (missingFiles.some(f => f.includes('.png'))) {
+        console.log('\n🎨 Attempting to generate missing icons...');
+        try {
+          const IconGenerator = require('./create-icons.js');
+          const generator = new IconGenerator();
+          await generator.generateIcons();
+          console.log('✓ Icons generated successfully');
+          
+          // Re-validate icons
+          const stillMissing = [];
+          for (const file of this.coreFiles) {
+            if (file.endsWith('.png')) {
+              const filePath = path.join(this.sourceDir, file);
+              if (!fs.existsSync(filePath) || fs.statSync(filePath).size < 100) {
+                stillMissing.push(file);
+              }
+            }
+          }
+          
+          if (stillMissing.length > 0) {
+            throw new Error(`Still missing icons: ${stillMissing.join(', ')}`);
+          }
+        } catch (error) {
+          throw new Error(`Failed to generate icons: ${error.message}`);
+        }
+      } else {
+        throw new Error('Required files are missing. Please ensure all extension files are present.');
+      }
+    }
+    
+    console.log('✓ All required files validated successfully');
+  }
+
   async createChromePackage() {
     console.log('📦 Creating Chrome/Edge package...');
     
@@ -72,22 +144,46 @@ class PackageCreator {
       });
       
       archive.on('error', reject);
+      archive.on('warning', (err) => {
+        if (err.code === 'ENOENT') {
+          console.warn(`   ⚠️ Warning: ${err.message}`);
+        } else {
+          reject(err);
+        }
+      });
+      
       archive.pipe(output);
       
-      // Add core files
+      // Add core files with validation
+      let filesAdded = 0;
       this.coreFiles.forEach(file => {
         const filePath = path.join(this.sourceDir, file);
         if (fs.existsSync(filePath)) {
           if (fs.statSync(filePath).isDirectory()) {
             archive.directory(filePath, file);
+            console.log(`   + Added directory: ${file}`);
           } else {
             archive.file(filePath, { name: file });
+            console.log(`   + Added file: ${file}`);
           }
+          filesAdded++;
+        } else {
+          console.warn(`   ⚠️ Skipped missing file: ${file}`);
         }
       });
       
       // Add Chrome-specific installation guide
       archive.append(this.getChromeInstallGuide(), { name: 'INSTALLATION-GUIDE.txt' });
+      console.log(`   + Added installation guide`);
+      
+      // Add a validation file
+      const packageInfo = {
+        generated: new Date().toISOString(),
+        browser: 'Chrome/Edge',
+        filesIncluded: filesAdded,
+        packageVersion: '1.0.0'
+      };
+      archive.append(JSON.stringify(packageInfo, null, 2), { name: 'package-info.json' });
       
       archive.finalize();
     });
