@@ -107,3 +107,7 @@ Thumbs.db
 # Temporary files
 /tmp
 create-icons.js
+
+# Build outputs
+packages/
+temp/

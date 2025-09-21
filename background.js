@@ -107,18 +107,52 @@ class SnippingToolBackground {
     switch (request.action) {
       case 'capture-screenshot':
         await this.captureScreenshot(request, sender, sendResponse);
+        await this.trackUsage('capture'); // Track usage
         break;
       case 'save-to-clipboard':
         await this.saveToClipboard(request.imageData, sendResponse);
+        await this.trackUsage('clipboard'); // Track usage
         break;
       case 'download-image':
         await this.downloadImage(request.imageData, request.filename, sendResponse);
+        await this.trackUsage('download'); // Track usage
         break;
       case 'get-settings':
         await this.getSettings(sendResponse);
         break;
       case 'update-settings':
         await this.updateSettings(request.settings, sendResponse);
+        break;
+      case 'save-history':
+        await this.saveHistory(request.history, sendResponse);
+        break;
+      case 'get-history':
+        await this.getHistory(sendResponse);
+        break;
+      case 'get-download-links':
+        try {
+          const links = await this.createDownloadLinks();
+          sendResponse({ success: true, links });
+        } catch (error) {
+          sendResponse({ success: false, error: error.message });
+        }
+        break;
+      case 'get-usage-stats':
+        try {
+          const result = await chrome.storage.local.get(['usageStats']);
+          sendResponse({ 
+            success: true, 
+            stats: result.usageStats || {
+              totalCaptures: 0,
+              clipboardSaves: 0,
+              fileSaves: 0,
+              lastUsed: null,
+              installDate: new Date().toISOString()
+            }
+          });
+        } catch (error) {
+          sendResponse({ success: false, error: error.message });
+        }
         break;
     }
   }
@@ -213,6 +247,119 @@ class SnippingToolBackground {
     } catch (error) {
       sendResponse({ success: false, error: error.message });
     }
+  }
+
+  // Advanced feature: Save screenshot history
+  async saveHistory(history, sendResponse) {
+    try {
+      // Store only metadata to prevent storage overflow
+      const limitedHistory = history.slice(0, 5).map(item => ({
+        id: item.id,
+        timestamp: item.timestamp,
+        dimensions: item.dimensions
+      }));
+      
+      await chrome.storage.local.set({
+        screenshotHistory: limitedHistory
+      });
+      sendResponse({ success: true });
+    } catch (error) {
+      sendResponse({ success: false, error: error.message });
+    }
+  }
+
+  // Advanced feature: Get screenshot history
+  async getHistory(sendResponse) {
+    try {
+      const result = await chrome.storage.local.get(['screenshotHistory']);
+      sendResponse({
+        success: true,
+        history: result.screenshotHistory || []
+      });
+    } catch (error) {
+      sendResponse({ success: false, error: error.message });
+    }
+  }
+
+  // Usage analytics (privacy-focused, no personal data)
+  async trackUsage(action) {
+    try {
+      const result = await chrome.storage.local.get(['usageStats']);
+      const stats = result.usageStats || {
+        totalCaptures: 0,
+        clipboardSaves: 0,
+        fileSaves: 0,
+        lastUsed: null,
+        installDate: new Date().toISOString()
+      };
+      
+      switch (action) {
+        case 'capture':
+          stats.totalCaptures++;
+          break;
+        case 'clipboard':
+          stats.clipboardSaves++;
+          break;
+        case 'download':
+          stats.fileSaves++;
+          break;
+      }
+      
+      stats.lastUsed = new Date().toISOString();
+      
+      await chrome.storage.local.set({ usageStats: stats });
+    } catch (error) {
+      console.warn('Failed to track usage:', error);
+    }
+  }
+
+  // Enhanced settings management with validation
+  async validateAndUpdateSettings(newSettings) {
+    const allowedFormats = ['png', 'jpeg'];
+    const allowedQualities = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+    
+    const validatedSettings = {
+      saveFormat: allowedFormats.includes(newSettings.saveFormat) ? newSettings.saveFormat : 'png',
+      quality: allowedQualities.includes(newSettings.quality) ? newSettings.quality : 0.9,
+      showPreview: Boolean(newSettings.showPreview),
+      autoSave: Boolean(newSettings.autoSave),
+      soundEnabled: Boolean(newSettings.soundEnabled),
+      animationsEnabled: Boolean(newSettings.animationsEnabled)
+    };
+    
+    try {
+      const result = await chrome.storage.sync.get(['settings']);
+      const currentSettings = result.settings || {};
+      const updatedSettings = { ...currentSettings, ...validatedSettings };
+      
+      await chrome.storage.sync.set({ settings: updatedSettings });
+      
+      // Notify all tabs of settings change
+      const tabs = await chrome.tabs.query({});
+      tabs.forEach(tab => {
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'settings-updated',
+          settings: updatedSettings
+        }).catch(() => {}); // Ignore errors for tabs without content script
+      });
+      
+      return updatedSettings;
+    } catch (error) {
+      console.error('Failed to update settings:', error);
+      throw error;
+    }
+  }
+
+  // Create downloadable extension package URLs
+  async createDownloadLinks() {
+    const baseUrl = 'https://github.com/Archikainthebag/Snipping-Tool';
+    
+    return {
+      chrome: `${baseUrl}/releases/latest/download/advanced-snipping-tool-chrome.zip`,
+      firefox: `${baseUrl}/releases/latest/download/advanced-snipping-tool-firefox.zip`,
+      source: `${baseUrl}/archive/refs/heads/main.zip`,
+      releases: `${baseUrl}/releases`
+    };
   }
 }
 

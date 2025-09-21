@@ -331,3 +331,189 @@
     color: #0f766e;
   }
 }
+
+/* Advanced Features Styles */
+
+/* Dimensions display */
+.snipping-dimensions {
+  position: absolute;
+  background: rgba(15, 23, 42, 0.9);
+  color: #14b8a6;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(20, 184, 166, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: none;
+  z-index: 2147483646;
+  display: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Flash animation for successful capture */
+.snipping-flash {
+  animation: flashAnimation 0.3s ease-out;
+}
+
+@keyframes flashAnimation {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Enhanced selection with animation */
+.snipping-selection {
+  animation: selectionPulse 2s ease-in-out infinite;
+}
+
+@keyframes selectionPulse {
+  0%, 100% { 
+    box-shadow: 
+      0 0 20px rgba(20, 184, 166, 0.3),
+      inset 0 0 20px rgba(20, 184, 166, 0.1);
+  }
+  50% { 
+    box-shadow: 
+      0 0 30px rgba(20, 184, 166, 0.5),
+      inset 0 0 30px rgba(20, 184, 166, 0.15);
+  }
+}
+
+/* Corner handles for selection */
+.snipping-selection::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 8px;
+  height: 8px;
+  background: #14b8a6;
+  border-radius: 50%;
+  box-shadow: 
+    calc(100% + 8px) 0 0 #14b8a6,
+    0 calc(100% + 8px) 0 #14b8a6,
+    calc(100% + 8px) calc(100% + 8px) 0 #14b8a6;
+}
+
+/* Info notification type */
+.snipping-notification.info {
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 20px rgba(59, 130, 246, 0.2);
+}
+
+.snipping-notification.success {
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+/* Enhanced toolbar buttons with tooltips */
+.toolbar-btn[title] {
+  position: relative;
+}
+
+.toolbar-btn[title]:hover::before {
+  content: attr(title);
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.95);
+  color: #14b8a6;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 2147483647;
+  border: 1px solid rgba(20, 184, 166, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(5px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Advanced keyboard shortcuts display */
+.keyboard-shortcuts-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(20, 184, 166, 0.3);
+  border-radius: 12px;
+  padding: 24px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 2147483648;
+  display: none;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.shortcuts-title {
+  color: #14b8a6;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+.shortcut-keys {
+  background: rgba(20, 184, 166, 0.2);
+  color: #14b8a6;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  border: 1px solid rgba(20, 184, 166, 0.3);
+}
+
+/* Mobile enhancements */
+@media (max-width: 768px) {
+  .snipping-dimensions {
+    font-size: 14px;
+    padding: 6px 12px;
+  }
+
+  .keyboard-shortcuts-overlay {
+    max-width: 90vw;
+    padding: 20px;
+  }
+
+  .toolbar-btn[title]:hover::before {
+    display: none; /* Hide tooltips on mobile */
+  }
+}
+
+/* Print media queries */
+@media print {
+  .snipping-overlay,
+  .snipping-toolbar,
+  .snipping-notification,
+  .snipping-dimensions {
+    display: none !important;
+  }
+}

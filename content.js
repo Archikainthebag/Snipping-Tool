@@ -366,6 +366,258 @@ class SnippingTool {
       notification.remove();
     }, 3000);
   }
+
+  // Advanced feature: Screenshot history
+  addToHistory(screenshot) {
+    const historyItem = {
+      id: Date.now(),
+      screenshot: screenshot,
+      timestamp: new Date().toISOString(),
+      dimensions: this.getSelectionDimensions()
+    };
+    
+    this.history.unshift(historyItem);
+    
+    // Keep only last 10 screenshots
+    if (this.history.length > 10) {
+      this.history = this.history.slice(0, 10);
+    }
+    
+    // Store in local storage
+    try {
+      chrome.runtime.sendMessage({
+        action: 'save-history',
+        history: this.history
+      });
+    } catch (error) {
+      console.warn('Could not save history:', error);
+    }
+  }
+
+  // Advanced feature: Batch operations
+  async saveToMultipleFormats() {
+    const screenshot = await this.captureScreenshot();
+    if (!screenshot) return;
+
+    // Save as PNG
+    await this.saveScreenshotAs(screenshot, 'png');
+    
+    // Save as JPEG
+    await this.saveScreenshotAs(screenshot, 'jpeg', 0.9);
+    
+    this.showNotification('Saved in multiple formats!', 'success');
+    this.deactivate();
+  }
+
+  async saveScreenshotAs(screenshot, format, quality = 1.0) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+        const dataUrl = canvas.toDataURL(mimeType, quality);
+        
+        const filename = `snipping-tool-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${format}`;
+        
+        chrome.runtime.sendMessage({
+          action: 'download-image',
+          imageData: dataUrl,
+          filename: filename
+        }).then(resolve);
+      };
+      img.src = screenshot;
+    });
+  }
+
+  // Advanced feature: OCR text extraction
+  async extractTextFromSelection() {
+    const screenshot = await this.captureScreenshot();
+    if (!screenshot) return;
+
+    try {
+      // Simple OCR using Tesseract.js (would need to be included)
+      this.showNotification('Text extraction feature coming soon!', 'info');
+      
+      // For now, just copy the screenshot
+      await this.saveToClipboard();
+    } catch (error) {
+      console.error('OCR failed:', error);
+      this.showNotification('Text extraction failed', 'error');
+    }
+  }
+
+  // Advanced feature: Smart selection suggestions
+  suggestSelection() {
+    const elements = document.elementsFromPoint(
+      (this.startX + this.endX) / 2,
+      (this.startY + this.endY) / 2
+    );
+    
+    // Find the most relevant element
+    const relevantElement = elements.find(el => 
+      el.tagName && !['HTML', 'BODY', 'DIV'].includes(el.tagName)
+    ) || elements[0];
+    
+    if (relevantElement) {
+      const rect = relevantElement.getBoundingClientRect();
+      const scrollX = window.pageXOffset;
+      const scrollY = window.pageYOffset;
+      
+      // Suggest better selection bounds
+      this.startX = rect.left + scrollX - 5;
+      this.startY = rect.top + scrollY - 5;
+      this.endX = rect.right + scrollX + 5;
+      this.endY = rect.bottom + scrollY + 5;
+      
+      this.updateSelection();
+      this.showNotification('Selection optimized!', 'success');
+    }
+  }
+
+  // Advanced feature: Selection dimensions display
+  getSelectionDimensions() {
+    const width = Math.abs(this.endX - this.startX);
+    const height = Math.abs(this.endY - this.startY);
+    return { width, height };
+  }
+
+  showDimensions() {
+    const { width, height } = this.getSelectionDimensions();
+    
+    // Create or update dimensions display
+    let dimensionsEl = document.getElementById('snipping-dimensions');
+    if (!dimensionsEl) {
+      dimensionsEl = document.createElement('div');
+      dimensionsEl.id = 'snipping-dimensions';
+      dimensionsEl.className = 'snipping-dimensions';
+      this.overlay.appendChild(dimensionsEl);
+    }
+    
+    dimensionsEl.textContent = `${Math.round(width)} × ${Math.round(height)}px`;
+    dimensionsEl.style.left = Math.min(this.startX, this.endX) + 'px';
+    dimensionsEl.style.top = (Math.min(this.startY, this.endY) - 30) + 'px';
+    dimensionsEl.style.display = 'block';
+  }
+
+  // Advanced feature: Keyboard shortcuts enhancement
+  handleAdvancedKeyboard(e) {
+    if (!this.isActive) return;
+
+    switch (e.key) {
+      case 'c':
+        if (e.ctrlKey) {
+          e.preventDefault();
+          this.saveToClipboard();
+        }
+        break;
+      case 'd':
+        if (e.ctrlKey) {
+          e.preventDefault();
+          this.downloadScreenshot();
+        }
+        break;
+      case 'b':
+        if (e.ctrlKey) {
+          e.preventDefault();
+          this.saveToMultipleFormats();
+        }
+        break;
+      case 'o':
+        if (e.ctrlKey) {
+          e.preventDefault();
+          this.suggestSelection();
+        }
+        break;
+      case 't':
+        if (e.ctrlKey) {
+          e.preventDefault();
+          this.extractTextFromSelection();
+        }
+        break;
+    }
+  }
+
+  // Advanced feature: Animation effects
+  playSuccessAnimation() {
+    if (!this.settings.animationsEnabled) return;
+
+    const flash = document.createElement('div');
+    flash.className = 'snipping-flash';
+    flash.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(20, 184, 166, 0.3);
+      z-index: 2147483646;
+      pointer-events: none;
+      animation: flashAnimation 0.3s ease-out;
+    `;
+
+    document.body.appendChild(flash);
+
+    setTimeout(() => {
+      flash.remove();
+    }, 300);
+  }
+
+  // Advanced feature: Sound feedback
+  playSound(type = 'capture') {
+    if (!this.settings.soundEnabled) return;
+
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      // Different sounds for different actions
+      switch (type) {
+        case 'capture':
+          oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+          break;
+        case 'error':
+          oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+          break;
+        case 'success':
+          oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(900, audioContext.currentTime + 0.1);
+          break;
+      }
+
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (error) {
+      // Sound failed, continue silently
+    }
+  }
+
+  // Load user settings
+  async loadSettings() {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'get-settings'
+      });
+      
+      if (response.success) {
+        this.settings = { ...this.settings, ...response.settings };
+      }
+    } catch (error) {
+      console.warn('Could not load settings:', error);
+    }
+  }
 }
 
 // Initialize the snipping tool
