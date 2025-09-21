@@ -1,0 +1,57 @@
+{
+  "name": "advanced-snipping-tool",
+  "version": "1.0.0",
+  "description": "Advanced browser snipping tool with modern dark teal design for capturing screenshots on any page",
+  "main": "background.js",
+  "scripts": {
+    "build": "node create-packages.js",
+    "dev": "echo 'Load the extension in developer mode from the project folder'",
+    "clean": "rm -rf packages temp",
+    "test": "echo 'No tests yet - this is a browser extension'",
+    "lint": "echo 'Linting would require ESLint setup'",
+    "create-icons": "node create-icons.js"
+  },
+  "keywords": [
+    "screenshot",
+    "snipping-tool",
+    "browser-extension",
+    "screen-capture",
+    "chrome-extension",
+    "firefox-addon",
+    "glassmorphism",
+    "dark-theme"
+  ],
+  "author": "Archikainthebag",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Archikainthebag/Snipping-Tool.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Archikainthebag/Snipping-Tool/issues"
+  },
+  "homepage": "https://github.com/Archikainthebag/Snipping-Tool",
+  "devDependencies": {
+    "archiver": "^6.0.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "files": [
+    "manifest.json",
+    "background.js",
+    "content.js",
+    "styles.css",
+    "popup.html",
+    "popup.css",
+    "popup.js",
+    "icons/",
+    "README.md",
+    "LICENSE"
+  ],
+  "browserslist": [
+    "Chrome >= 88",
+    "Edge >= 88",
+    "Firefox >= 109"
+  ]
+}
