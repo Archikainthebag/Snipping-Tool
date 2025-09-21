@@ -824,8 +824,9 @@ styleSheet.textContent = notificationStyles;
 document.head.appendChild(styleSheet);
 
 // Initialize landing page when DOM is loaded
+let landingPage;
 document.addEventListener('DOMContentLoaded', () => {
-  new LandingPage();
+  landingPage = new LandingPage();
 });
 
 // Add loading animation
