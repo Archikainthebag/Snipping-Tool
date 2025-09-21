@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Snipping Tool</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <div class="header-content">
+        <div class="logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+          </svg>
+        </div>
+        <h1>Advanced Snipping Tool</h1>
+      </div>
+      <div class="status-indicator">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Active</span>
+      </div>
+    </header>
+
+    <main class="popup-main">
+      <!-- Quick Actions -->
+      <section class="quick-actions">
+        <button class="action-btn primary" id="start-snipping">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M14.5 4l-1 1.5L12 4 10.5 5.5 9 4 7.5 5.5 6 4v16l1.5-1.5L9 20l1.5-1.5L12 20l1.5-1.5L15 20l1.5-1.5L18 20V4l-1.5 1.5L15 4l-1.5 1.5z"/>
+          </svg>
+          Start Snipping
+        </button>
+        <button class="action-btn secondary" id="toggle-tool">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+          <span id="toggle-text">Disable</span>
+        </button>
+      </section>
+
+      <!-- Keyboard Shortcuts -->
+      <section class="shortcuts-section">
+        <h3>Keyboard Shortcuts</h3>
+        <div class="shortcut-list">
+          <div class="shortcut-item">
+            <span class="shortcut-desc">Activate Snipping</span>
+            <kbd class="shortcut-keys">Ctrl + Shift + S</kbd>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-desc">Toggle Tool</span>
+            <kbd class="shortcut-keys">Ctrl + Shift + T</kbd>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-desc">Cancel Selection</span>
+            <kbd class="shortcut-keys">Escape</kbd>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-desc">Save to Clipboard</span>
+            <kbd class="shortcut-keys">Enter</kbd>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings -->
+      <section class="settings-section">
+        <h3>Settings</h3>
+        <div class="setting-group">
+          <label for="save-location">Default Save Location</label>
+          <select id="save-location" class="setting-select">
+            <option value="clipboard">Clipboard</option>
+            <option value="download">Download</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
+        
+        <div class="setting-group">
+          <label for="image-format">Image Format</label>
+          <select id="image-format" class="setting-select">
+            <option value="png">PNG</option>
+            <option value="jpg">JPG</option>
+            <option value="webp">WebP</option>
+          </select>
+        </div>
+
+        <div class="setting-group">
+          <label for="image-quality">Image Quality</label>
+          <select id="image-quality" class="setting-select">
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Instructions -->
+      <section class="instructions-section">
+        <h3>How to Use</h3>
+        <ol class="instruction-list">
+          <li>Press <kbd>Ctrl + Shift + S</kbd> or click "Start Snipping"</li>
+          <li>Click and drag to select an area</li>
+          <li>Choose to save to clipboard or download</li>
+          <li>Use <kbd>Escape</kbd> to cancel anytime</li>
+        </ol>
+      </section>
+    </main>
+
+    <footer class="popup-footer">
+      <div class="footer-content">
+        <span class="version">v1.0.0</span>
+        <div class="footer-links">
+          <a href="#" id="help-link">Help</a>
+          <a href="#" id="feedback-link">Feedback</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

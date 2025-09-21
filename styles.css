@@ -1,0 +1,333 @@
+/* Advanced Snipping Tool Styles - Modern Dark Teal Glassy Design */
+
+.snipping-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2147483647;
+  cursor: crosshair;
+  display: none;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.snipping-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.snipping-selection {
+  position: absolute;
+  border: 2px solid #14b8a6;
+  background: transparent;
+  display: none;
+  pointer-events: none;
+  box-shadow: 
+    0 0 20px rgba(20, 184, 166, 0.3),
+    inset 0 0 20px rgba(20, 184, 166, 0.1);
+  backdrop-filter: blur(1px);
+}
+
+.snipping-selection::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 1px solid rgba(20, 184, 166, 0.5);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* Modern Glassy Toolbar */
+.snipping-toolbar {
+  position: absolute;
+  display: none;
+  padding: 8px;
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.95),
+    rgba(30, 41, 59, 0.95)
+  );
+  border: 1px solid rgba(20, 184, 166, 0.3);
+  border-radius: 12px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 20px rgba(20, 184, 166, 0.2);
+  z-index: 2147483648;
+  min-width: 160px;
+}
+
+.toolbar-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.toolbar-btn {
+  background: linear-gradient(
+    135deg,
+    rgba(20, 184, 166, 0.2),
+    rgba(6, 182, 212, 0.2)
+  );
+  border: 1px solid rgba(20, 184, 166, 0.4);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #14b8a6;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.toolbar-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(20, 184, 166, 0.3),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.toolbar-btn:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(20, 184, 166, 0.3),
+    rgba(6, 182, 212, 0.3)
+  );
+  border-color: rgba(20, 184, 166, 0.6);
+  color: #5eead4;
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 16px rgba(20, 184, 166, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.toolbar-btn:hover::before {
+  left: 100%;
+}
+
+.toolbar-btn:active {
+  transform: translateY(0);
+  box-shadow: 
+    0 2px 8px rgba(20, 184, 166, 0.2),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toolbar-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  filter: drop-shadow(0 0 4px rgba(20, 184, 166, 0.3));
+}
+
+/* Cancel button special styling */
+.toolbar-btn#cancel-snip {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.2),
+    rgba(220, 38, 38, 0.2)
+  );
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.toolbar-btn#cancel-snip:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.3),
+    rgba(220, 38, 38, 0.3)
+  );
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #fca5a5;
+}
+
+/* Notification System */
+.snipping-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 16px 24px;
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.95),
+    rgba(30, 41, 59, 0.95)
+  );
+  border: 1px solid rgba(20, 184, 166, 0.3);
+  border-radius: 12px;
+  color: #14b8a6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 20px rgba(20, 184, 166, 0.2);
+  z-index: 2147483649;
+  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 300px;
+}
+
+.snipping-notification.error {
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 20px rgba(239, 68, 68, 0.2);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .snipping-toolbar {
+    min-width: 140px;
+    padding: 6px;
+  }
+  
+  .toolbar-btn {
+    padding: 8px 10px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+  
+  .toolbar-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .snipping-notification {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    font-size: 13px;
+    padding: 12px 16px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .snipping-selection {
+    border-color: #00ffff;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+  }
+  
+  .snipping-toolbar {
+    background: rgba(0, 0, 0, 0.95);
+    border-color: #00ffff;
+  }
+  
+  .toolbar-btn {
+    border-color: #00ffff;
+    color: #00ffff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .toolbar-btn {
+    transition: none;
+  }
+  
+  .toolbar-btn::before {
+    display: none;
+  }
+  
+  .snipping-notification {
+    animation: none;
+  }
+}
+
+/* Dark mode specific enhancements */
+@media (prefers-color-scheme: dark) {
+  .snipping-toolbar {
+    background: linear-gradient(
+      135deg,
+      rgba(3, 7, 18, 0.98),
+      rgba(15, 23, 42, 0.98)
+    );
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      0 0 20px rgba(20, 184, 166, 0.3);
+  }
+  
+  .snipping-notification {
+    background: linear-gradient(
+      135deg,
+      rgba(3, 7, 18, 0.98),
+      rgba(15, 23, 42, 0.98)
+    );
+  }
+}
+
+/* Light mode fallback */
+@media (prefers-color-scheme: light) {
+  .snipping-toolbar {
+    background: linear-gradient(
+      135deg,
+      rgba(248, 250, 252, 0.95),
+      rgba(226, 232, 240, 0.95)
+    );
+    border-color: rgba(20, 184, 166, 0.4);
+    color: #0f766e;
+  }
+  
+  .toolbar-btn {
+    color: #0f766e;
+    background: linear-gradient(
+      135deg,
+      rgba(20, 184, 166, 0.1),
+      rgba(6, 182, 212, 0.1)
+    );
+  }
+  
+  .snipping-notification {
+    background: linear-gradient(
+      135deg,
+      rgba(248, 250, 252, 0.95),
+      rgba(226, 232, 240, 0.95)
+    );
+    color: #0f766e;
+  }
+}
