@@ -154,16 +154,19 @@ class PackageCreator {
       
       archive.pipe(output);
       
-      // Add core files with validation
+      // Define the root folder name for organization
+      const rootFolderName = 'advanced-snipping-tool-chrome';
+      
+      // Add core files with validation - place them inside the root folder
       let filesAdded = 0;
       this.coreFiles.forEach(file => {
         const filePath = path.join(this.sourceDir, file);
         if (fs.existsSync(filePath)) {
           if (fs.statSync(filePath).isDirectory()) {
-            archive.directory(filePath, file);
+            archive.directory(filePath, `${rootFolderName}/${file}`);
             console.log(`   + Added directory: ${file}`);
           } else {
-            archive.file(filePath, { name: file });
+            archive.file(filePath, { name: `${rootFolderName}/${file}` });
             console.log(`   + Added file: ${file}`);
           }
           filesAdded++;
@@ -172,18 +175,18 @@ class PackageCreator {
         }
       });
       
-      // Add Chrome-specific installation guide
-      archive.append(this.getChromeInstallGuide(), { name: 'INSTALLATION-GUIDE.txt' });
+      // Add Chrome-specific installation guide inside the root folder
+      archive.append(this.getChromeInstallGuide(), { name: `${rootFolderName}/INSTALLATION-GUIDE.txt` });
       console.log(`   + Added installation guide`);
       
-      // Add a validation file
+      // Add a validation file inside the root folder
       const packageInfo = {
         generated: new Date().toISOString(),
         browser: 'Chrome/Edge',
         filesIncluded: filesAdded,
         packageVersion: '1.0.0'
       };
-      archive.append(JSON.stringify(packageInfo, null, 2), { name: 'package-info.json' });
+      archive.append(JSON.stringify(packageInfo, null, 2), { name: `${rootFolderName}/package-info.json` });
       
       archive.finalize();
     });
@@ -205,26 +208,29 @@ class PackageCreator {
       archive.on('error', reject);
       archive.pipe(output);
       
-      // Add core files (except manifest.json which we'll modify)
+      // Define the root folder name for organization
+      const rootFolderName = 'advanced-snipping-tool-firefox';
+      
+      // Add core files (except manifest.json which we'll modify) - place them inside the root folder
       this.coreFiles.forEach(file => {
         if (file === 'manifest.json') return; // Handle separately
         
         const filePath = path.join(this.sourceDir, file);
         if (fs.existsSync(filePath)) {
           if (fs.statSync(filePath).isDirectory()) {
-            archive.directory(filePath, file);
+            archive.directory(filePath, `${rootFolderName}/${file}`);
           } else {
-            archive.file(filePath, { name: file });
+            archive.file(filePath, { name: `${rootFolderName}/${file}` });
           }
         }
       });
       
-      // Add Firefox-specific manifest
+      // Add Firefox-specific manifest inside the root folder
       const firefoxManifest = this.createFirefoxManifest();
-      archive.append(JSON.stringify(firefoxManifest, null, 2), { name: 'manifest.json' });
+      archive.append(JSON.stringify(firefoxManifest, null, 2), { name: `${rootFolderName}/manifest.json` });
       
-      // Add Firefox-specific installation guide
-      archive.append(this.getFirefoxInstallGuide(), { name: 'INSTALLATION-GUIDE.txt' });
+      // Add Firefox-specific installation guide inside the root folder
+      archive.append(this.getFirefoxInstallGuide(), { name: `${rootFolderName}/INSTALLATION-GUIDE.txt` });
       
       archive.finalize();
     });
@@ -258,7 +264,8 @@ class PackageCreator {
 STEP 1: Extract Files
    1. Right-click the downloaded ZIP file
    2. Select "Extract All" or "Extract Here"
-   3. Choose a folder on your computer (e.g., Desktop/SnippingTool)
+   3. Choose a folder on your computer (e.g., Desktop)
+   4. All files will be neatly organized in a folder called "advanced-snipping-tool-chrome"
 
 STEP 2: Install Extension
    1. Open Chrome or Edge browser
@@ -266,7 +273,7 @@ STEP 2: Install Extension
    3. Press Enter
    4. Turn ON "Developer mode" (toggle switch in top-right corner)
    5. Click "Load unpacked" button
-   6. Select the folder where you extracted the files
+   6. Navigate to and select the "advanced-snipping-tool-chrome" folder
    7. Click "Select Folder"
 
 STEP 3: Pin Extension (Recommended)
@@ -301,7 +308,8 @@ NEED HELP?
 STEP 1: Extract Files
    1. Right-click the downloaded ZIP file
    2. Select "Extract All" or "Extract Here"
-   3. Choose a folder on your computer (e.g., Desktop/SnippingTool)
+   3. Choose a folder on your computer (e.g., Desktop)
+   4. All files will be neatly organized in a folder called "advanced-snipping-tool-firefox"
 
 STEP 2: Install Extension (Temporary)
    1. Open Firefox browser
@@ -309,7 +317,7 @@ STEP 2: Install Extension (Temporary)
    3. Press Enter
    4. Click "This Firefox" on the left side
    5. Click "Load Temporary Add-on" button
-   6. Navigate to the extracted folder
+   6. Navigate to the "advanced-snipping-tool-firefox" folder
    7. Select ANY file from the folder (e.g., manifest.json)
    8. Click "Open"
 
