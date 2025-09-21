@@ -12,7 +12,8 @@ Advanced Snipping Tool - Chrome/Edge Installation Guide
 STEP 1: Extract Files
    1. Right-click the downloaded ZIP file
    2. Select "Extract All" or "Extract Here"
-   3. Choose a folder on your computer (e.g., Desktop/SnippingTool)
+   3. Choose a folder on your computer (e.g., Desktop)
+   4. All files will be neatly organized in a folder called "advanced-snipping-tool-chrome"
 
 STEP 2: Install Extension
    1. Open Chrome or Edge browser
@@ -20,7 +21,7 @@ STEP 2: Install Extension
    3. Press Enter
    4. Turn ON "Developer mode" (toggle switch in top-right corner)
    5. Click "Load unpacked" button
-   6. Select the folder where you extracted the files
+   6. Navigate to and select the "advanced-snipping-tool-chrome" folder
    7. Click "Select Folder"
 
 STEP 3: Pin Extension (Recommended)
@@ -54,7 +55,8 @@ Advanced Snipping Tool - Firefox Installation Guide
 STEP 1: Extract Files
    1. Right-click the downloaded ZIP file
    2. Select "Extract All" or "Extract Here"
-   3. Choose a folder on your computer (e.g., Desktop/SnippingTool)
+   3. Choose a folder on your computer (e.g., Desktop)
+   4. All files will be neatly organized in a folder called "advanced-snipping-tool-firefox"
 
 STEP 2: Install Extension (Temporary)
    1. Open Firefox browser
@@ -62,7 +64,7 @@ STEP 2: Install Extension (Temporary)
    3. Press Enter
    4. Click "This Firefox" on the left side
    5. Click "Load Temporary Add-on" button
-   6. Navigate to the extracted folder
+   6. Navigate to the "advanced-snipping-tool-firefox" folder
    7. Select ANY file from the folder (e.g., manifest.json)
    8. Click "Open"
 
