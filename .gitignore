@@ -104,10 +104,5 @@ Thumbs.db
 *.swo
 *~
 
-# Temporary files
-/tmp
-create-icons.js
-
-# Build outputs
-packages/
+# Temporary files during development
 temp/

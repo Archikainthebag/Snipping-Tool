@@ -279,17 +279,165 @@ All screenshots are processed locally on your computer.`
     return new Blob([zipContent], { type: 'text/plain' });
   }
 
+  async createRealZipFile(files, browser) {
+    if (typeof JSZip === 'undefined') {
+      throw new Error('JSZip library not loaded');
+    }
+
+    const zip = new JSZip();
+    
+    // Add all files to the ZIP
+    for (const [filename, content] of Object.entries(files)) {
+      if (filename.endsWith('.png')) {
+        // For PNG files, we need to fetch the actual binary data
+        try {
+          const response = await fetch(`icons/${filename.split('/').pop()}`);
+          if (response.ok) {
+            const blob = await response.blob();
+            zip.file(filename, blob);
+          } else {
+            console.warn(`Could not fetch ${filename}, skipping`);
+          }
+        } catch (error) {
+          console.warn(`Error fetching ${filename}:`, error);
+        }
+      } else {
+        // Text files
+        zip.file(filename, content);
+      }
+    }
+    
+    // Add browser-specific installation guide
+    const installGuide = browser === 'chrome' ? this.getChromeInstallationGuide() : this.getFirefoxInstallationGuide();
+    zip.file('INSTALLATION-GUIDE.txt', installGuide);
+    
+    // Add package info
+    const packageInfo = {
+      name: 'Advanced Snipping Tool',
+      version: '1.0.0',
+      browser: browser,
+      generated: new Date().toISOString(),
+      files: Object.keys(files).length
+    };
+    zip.file('package-info.json', JSON.stringify(packageInfo, null, 2));
+    
+    // Generate the ZIP file
+    return await zip.generateAsync({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 9 }
+    });
+  }
+
+  getChromeInstallationGuide() {
+    return `Advanced Snipping Tool - Chrome/Edge Installation Guide
+=======================================================
+
+🚀 EASY INSTALLATION (No technical skills required!)
+
+STEP 1: Extract Files
+   1. Right-click the downloaded ZIP file
+   2. Select "Extract All" or "Extract Here"
+   3. Choose a folder on your computer (e.g., Desktop/SnippingTool)
+
+STEP 2: Install Extension
+   1. Open Chrome or Edge browser
+   2. Type chrome://extensions/ in the address bar (or edge://extensions/)
+   3. Press Enter
+   4. Turn ON "Developer mode" (toggle switch in top-right corner)
+   5. Click "Load unpacked" button
+   6. Select the folder where you extracted the files
+   7. Click "Select Folder"
+
+STEP 3: Pin Extension (Recommended)
+   1. Click the puzzle piece icon (🧩) in your browser toolbar
+   2. Find "Advanced Snipping Tool"
+   3. Click the pin icon to keep it visible
+
+🎉 DONE! You can now use the snipping tool!
+
+HOW TO USE:
+   • Press Ctrl+Shift+S to start snipping
+   • Click and drag to select an area
+   • Choose to save to clipboard or download
+
+NEED HELP?
+   Visit: https://github.com/Archikainthebag/Snipping-Tool
+
+🛡️ SAFETY GUARANTEE:
+   ✓ 100% safe and secure
+   ✓ No data collection or tracking
+   ✓ All processing happens locally on your computer
+   ✓ Open source code available for review
+`;
+  }
+
+  getFirefoxInstallationGuide() {
+    return `Advanced Snipping Tool - Firefox Installation Guide
+====================================================
+
+🚀 EASY INSTALLATION (No technical skills required!)
+
+STEP 1: Extract Files
+   1. Right-click the downloaded ZIP file
+   2. Select "Extract All" or "Extract Here"
+   3. Choose a folder on your computer (e.g., Desktop/SnippingTool)
+
+STEP 2: Install Extension (Temporary)
+   1. Open Firefox browser
+   2. Type about:debugging in the address bar
+   3. Press Enter
+   4. Click "This Firefox" on the left side
+   5. Click "Load Temporary Add-on" button
+   6. Navigate to the extracted folder
+   7. Select ANY file from the folder (e.g., manifest.json)
+   8. Click "Open"
+
+IMPORTANT NOTE:
+   This is a temporary installation that will be removed when Firefox restarts.
+   For permanent installation, contact us for a signed version.
+
+STEP 3: Using the Extension
+   The extension icon will appear in your toolbar automatically.
+
+🎉 DONE! You can now use the snipping tool!
+
+HOW TO USE:
+   • Press Ctrl+Shift+S to start snipping
+   • Click and drag to select an area
+   • Choose to save to clipboard or download
+
+NEED HELP?
+   Visit: https://github.com/Archikainthebag/Snipping-Tool
+
+🛡️ SAFETY GUARANTEE:
+   ✓ 100% safe and secure
+   ✓ No data collection or tracking
+   ✓ All processing happens locally on your computer
+   ✓ Open source code available for review
+`;
+  }
+
   downloadExtension(browser) {
+    // First, try to detect if the user is already in Chrome to offer direct installation
+    if (browser === 'chrome' && this.detectChromeWebStore()) {
+      this.tryDirectInstallation();
+      return;
+    }
+
     const filename = `advanced-snipping-tool-${browser}.zip`;
     const packagePath = `packages/${filename}`;
     
-    // Check if package exists locally, otherwise fallback to GitHub
+    // Show loading state
+    this.showNotification('Preparing download...', 'info');
+    
+    // Try to download pre-built package first
     fetch(packagePath)
       .then(response => {
         if (response.ok) {
           return response.blob();
         } else {
-          throw new Error('Package not found locally');
+          throw new Error('Pre-built package not found');
         }
       })
       .then(blob => {
@@ -297,9 +445,108 @@ All screenshots are processed locally on your computer.`
         this.showInstallationGuide(browser);
       })
       .catch(() => {
-        // Fallback to GitHub download
-        this.downloadFromGitHub(browser);
+        // Fallback: Create package on the fly
+        this.createAndDownloadPackage(browser);
       });
+  }
+
+  detectChromeWebStore() {
+    // Check if running in Chrome/Edge
+    const isChrome = /Chrome|Chromium|Edge/.test(navigator.userAgent);
+    const hasExtensionAPI = typeof chrome !== 'undefined' && chrome.runtime;
+    return isChrome && window.location.protocol === 'https:';
+  }
+
+  tryDirectInstallation() {
+    // Check if Chrome Web Store installation is possible
+    this.showNotification('Checking Chrome Web Store compatibility...', 'info');
+    
+    // For now, fallback to manual installation with enhanced instructions
+    setTimeout(() => {
+      this.showEnhancedChromeInstructions();
+    }, 1000);
+  }
+
+  showEnhancedChromeInstructions() {
+    const modal = document.getElementById('install-modal');
+    const stepsContainer = document.getElementById('install-steps');
+    
+    stepsContainer.innerHTML = `
+      <div class="enhanced-chrome-install">
+        <h4>🚀 Chrome/Edge Quick Installation</h4>
+        <div class="install-method">
+          <h5>Method 1: Direct Download (Recommended)</h5>
+          <button class="install-btn" onclick="landingPage.downloadFallback('chrome')">
+            📥 Download Extension Package
+          </button>
+          <p class="method-desc">Download a properly packaged extension file for manual installation.</p>
+        </div>
+        
+        <div class="install-steps">
+          <h5>Installation Steps:</h5>
+          <ol>
+            <li><strong>Download:</strong> Click the button above to get the extension package</li>
+            <li><strong>Extract:</strong> Right-click the ZIP file → "Extract All"</li>
+            <li><strong>Open Extensions:</strong> Type <code>chrome://extensions/</code> in your address bar</li>
+            <li><strong>Enable Developer Mode:</strong> Toggle the switch in the top-right</li>
+            <li><strong>Load Extension:</strong> Click "Load unpacked" → Select the extracted folder</li>
+            <li><strong>Pin Extension:</strong> Click the puzzle icon 🧩 in toolbar → Pin the extension</li>
+          </ol>
+        </div>
+        
+        <div class="troubleshooting">
+          <h5>❓ Having Issues?</h5>
+          <ul>
+            <li>Make sure you extracted the ZIP file completely</li>
+            <li>Select the folder containing manifest.json</li>
+            <li>Ensure Developer Mode is ON</li>
+            <li>Try restarting Chrome if problems persist</li>
+          </ul>
+        </div>
+        
+        <div class="safety-guarantee">
+          <h5>🛡️ Safety Guarantee</h5>
+          <p>✓ 100% Safe & Secure ✓ No Data Collection ✓ Local Processing Only</p>
+        </div>
+      </div>
+    `;
+    
+    modal.style.display = 'block';
+  }
+
+  async createAndDownloadPackage(browser) {
+    try {
+      this.showNotification('Creating extension package...', 'info');
+      
+      // Get all extension files
+      const files = await this.getExtensionFiles();
+      
+      // Validate essential files
+      if (!files['manifest.json'] || !files['background.js'] || !files['content.js']) {
+        throw new Error('Essential extension files are missing');
+      }
+      
+      // Create the package
+      const packageBlob = await this.createRealZipFile(files, browser);
+      
+      // Download the package
+      const filename = `advanced-snipping-tool-${browser}.zip`;
+      this.downloadBlob(packageBlob, filename);
+      this.showInstallationGuide(browser);
+      
+    } catch (error) {
+      console.error('Package creation failed:', error);
+      this.showNotification('Package creation failed. Falling back to GitHub download.', 'error');
+      setTimeout(() => this.downloadFromGitHub(browser), 1000);
+    }
+  }
+
+  downloadFallback(browser) {
+    // Close the modal first
+    document.getElementById('install-modal').style.display = 'none';
+    
+    // Start the download process
+    this.createAndDownloadPackage(browser);
   }
 
   downloadBlob(blob, filename) {

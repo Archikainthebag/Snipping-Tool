@@ -1,0 +1,97 @@
+Advanced Snipping Tool - Complete Installation Guide
+=====================================================
+
+Choose your browser below for specific instructions:
+
+🌐 CHROME & EDGE USERS:
+Advanced Snipping Tool - Chrome/Edge Installation Guide
+=======================================================
+
+🚀 EASY INSTALLATION (No technical skills required!)
+
+STEP 1: Extract Files
+   1. Right-click the downloaded ZIP file
+   2. Select "Extract All" or "Extract Here"
+   3. Choose a folder on your computer (e.g., Desktop/SnippingTool)
+
+STEP 2: Install Extension
+   1. Open Chrome or Edge browser
+   2. Type chrome://extensions/ in the address bar (or edge://extensions/)
+   3. Press Enter
+   4. Turn ON "Developer mode" (toggle switch in top-right corner)
+   5. Click "Load unpacked" button
+   6. Select the folder where you extracted the files
+   7. Click "Select Folder"
+
+STEP 3: Pin Extension (Recommended)
+   1. Click the puzzle piece icon (🧩) in your browser toolbar
+   2. Find "Advanced Snipping Tool"
+   3. Click the pin icon to keep it visible
+
+🎉 DONE! You can now use the snipping tool!
+
+HOW TO USE:
+   • Press Ctrl+Shift+S to start snipping
+   • Click and drag to select an area
+   • Choose to save to clipboard or download
+
+NEED HELP?
+   Visit: https://github.com/Archikainthebag/Snipping-Tool
+
+🛡️ SAFETY GUARANTEE:
+   ✓ 100% safe and secure
+   ✓ No data collection or tracking
+   ✓ All processing happens locally on your computer
+   ✓ Open source code available for review
+
+
+🦊 FIREFOX USERS:
+Advanced Snipping Tool - Firefox Installation Guide
+====================================================
+
+🚀 EASY INSTALLATION (No technical skills required!)
+
+STEP 1: Extract Files
+   1. Right-click the downloaded ZIP file
+   2. Select "Extract All" or "Extract Here"
+   3. Choose a folder on your computer (e.g., Desktop/SnippingTool)
+
+STEP 2: Install Extension (Temporary)
+   1. Open Firefox browser
+   2. Type about:debugging in the address bar
+   3. Press Enter
+   4. Click "This Firefox" on the left side
+   5. Click "Load Temporary Add-on" button
+   6. Navigate to the extracted folder
+   7. Select ANY file from the folder (e.g., manifest.json)
+   8. Click "Open"
+
+IMPORTANT NOTE:
+   This is a temporary installation that will be removed when Firefox restarts.
+   For permanent installation, contact us for a signed version.
+
+STEP 3: Using the Extension
+   The extension icon will appear in your toolbar automatically.
+
+🎉 DONE! You can now use the snipping tool!
+
+HOW TO USE:
+   • Press Ctrl+Shift+S to start snipping
+   • Click and drag to select an area
+   • Choose to save to clipboard or download
+
+NEED HELP?
+   Visit: https://github.com/Archikainthebag/Snipping-Tool
+
+🛡️ SAFETY GUARANTEE:
+   ✓ 100% safe and secure
+   ✓ No data collection or tracking
+   ✓ All processing happens locally on your computer
+   ✓ Open source code available for review
+
+
+📞 SUPPORT:
+   If you need help, visit: https://github.com/Archikainthebag/Snipping-Tool/issues
+   Or check our website: https://archikainthebag.github.io/Snipping-Tool/
+
+Made with ❤️ for the web community

@@ -5,11 +5,13 @@
   "main": "background.js",
   "scripts": {
     "build": "node create-packages.js",
+    "build-icons": "node create-icons.js",
     "dev": "echo 'Load the extension in developer mode from the project folder'",
     "clean": "rm -rf packages temp",
-    "test": "echo 'No tests yet - this is a browser extension'",
+    "test": "echo 'Testing extension packaging...' && npm run build && echo 'Package test completed'",
     "lint": "echo 'Linting would require ESLint setup'",
-    "create-icons": "node create-icons.js"
+    "create-icons": "node create-icons.js",
+    "validate": "node -e \"const manifest = require('./manifest.json'); console.log('✓ Manifest valid:', manifest.name, 'v' + manifest.version)\""
   },
   "keywords": [
     "screenshot",
@@ -32,7 +34,8 @@
   },
   "homepage": "https://github.com/Archikainthebag/Snipping-Tool",
   "devDependencies": {
-    "archiver": "^6.0.1"
+    "archiver": "^6.0.1",
+    "sharp": "^0.34.4"
   },
   "engines": {
     "node": ">=14.0.0"
@@ -53,5 +56,8 @@
     "Chrome >= 88",
     "Edge >= 88",
     "Firefox >= 109"
-  ]
+  ],
+  "dependencies": {
+    "jszip": "^3.10.1"
+  }
 }
