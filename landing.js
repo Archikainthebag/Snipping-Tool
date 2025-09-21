@@ -445,8 +445,10 @@ NEED HELP?
         this.showInstallationGuide(browser);
       })
       .catch(() => {
-        // Fallback: Create package on the fly
-        this.createAndDownloadPackage(browser);
+        // Fallback: Try GitHub download since dynamic package creation requires external dependencies
+        console.warn('Pre-built package not available, falling back to GitHub download');
+        this.showNotification('Downloading from GitHub repository...', 'info');
+        this.downloadFromGitHub(browser);
       });
   }
 
@@ -518,6 +520,11 @@ NEED HELP?
     try {
       this.showNotification('Creating extension package...', 'info');
       
+      // Check if JSZip is available
+      if (typeof JSZip === 'undefined') {
+        throw new Error('JSZip library not available (external CDN may be blocked)');
+      }
+      
       // Get all extension files
       const files = await this.getExtensionFiles();
       
@@ -536,7 +543,14 @@ NEED HELP?
       
     } catch (error) {
       console.error('Package creation failed:', error);
-      this.showNotification('Package creation failed. Falling back to GitHub download.', 'error');
+      
+      // Provide more specific error messaging
+      if (error.message.includes('JSZip')) {
+        this.showNotification('Dynamic package creation unavailable. Downloading source from GitHub...', 'info');
+      } else {
+        this.showNotification('Package creation failed. Falling back to GitHub download.', 'error');
+      }
+      
       setTimeout(() => this.downloadFromGitHub(browser), 1000);
     }
   }
@@ -567,16 +581,71 @@ NEED HELP?
     // Fallback to direct GitHub download
     const githubUrl = 'https://github.com/Archikainthebag/Snipping-Tool/archive/refs/heads/main.zip';
     
-    // Create temporary link
-    const a = document.createElement('a');
-    a.href = githubUrl;
-    a.download = `snipping-tool-${browser}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    try {
+      // Create temporary link
+      const a = document.createElement('a');
+      a.href = githubUrl;
+      a.download = `snipping-tool-${browser}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      this.showInstallationGuide(browser);
+      this.showNotification('Download started! Extract the ZIP file and follow the installation guide.', 'success');
+    } catch (error) {
+      console.error('GitHub download failed:', error);
+      this.showNotification('Download failed. Please visit GitHub manually to download the extension.', 'error');
+      
+      // Show manual download instructions
+      setTimeout(() => {
+        this.showManualDownloadInstructions();
+      }, 2000);
+    }
+  }
+
+  showManualDownloadInstructions() {
+    const modal = document.getElementById('install-modal');
+    const stepsContainer = document.getElementById('install-steps');
     
-    this.showInstallationGuide(browser);
-    this.showNotification('Download started! Extract the ZIP file and follow the installation guide.', 'info');
+    stepsContainer.innerHTML = `
+      <div class="manual-download-instructions">
+        <h4>📥 Manual Download Instructions</h4>
+        <p>If the automatic download doesn't work, please follow these steps:</p>
+        
+        <div class="download-steps">
+          <h5>Step 1: Download from GitHub</h5>
+          <ol>
+            <li>Go to: <a href="https://github.com/Archikainthebag/Snipping-Tool" target="_blank" rel="noopener">https://github.com/Archikainthebag/Snipping-Tool</a></li>
+            <li>Click the green "Code" button</li>
+            <li>Select "Download ZIP"</li>
+            <li>Save the file to your computer</li>
+          </ol>
+        </div>
+        
+        <div class="install-steps">
+          <h5>Step 2: Install the Extension</h5>
+          <ol>
+            <li><strong>Extract:</strong> Right-click the ZIP file → "Extract All"</li>
+            <li><strong>Open Extensions:</strong> Type <code>chrome://extensions/</code> in your address bar</li>
+            <li><strong>Enable Developer Mode:</strong> Toggle the switch in the top-right</li>
+            <li><strong>Load Extension:</strong> Click "Load unpacked" → Select the extracted folder</li>
+            <li><strong>Pin Extension:</strong> Click the puzzle icon 🧩 in toolbar → Pin the extension</li>
+          </ol>
+        </div>
+        
+        <div class="help-section">
+          <h5>❓ Need Help?</h5>
+          <p>Visit our <a href="https://github.com/Archikainthebag/Snipping-Tool/issues" target="_blank" rel="noopener">GitHub Issues</a> page for support.</p>
+        </div>
+        
+        <div class="safety-guarantee">
+          <h5>🛡️ Safety Guarantee</h5>
+          <p>✓ 100% Safe & Secure ✓ No Data Collection ✓ Local Processing Only</p>
+        </div>
+      </div>
+    `;
+    
+    modal.style.display = 'block';
   }
 
   showInstallationGuide(browser) {

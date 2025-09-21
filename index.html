@@ -279,7 +279,9 @@
     </footer>
 
     <!-- External libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- JSZip is loaded for dynamic package creation fallback, but not required for normal operation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" 
+            onerror="console.warn('JSZip CDN blocked - dynamic package creation disabled, using GitHub fallback')"></script>
     <script src="landing.js"></script>
 </body>
 </html>
