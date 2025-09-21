@@ -160,9 +160,17 @@ class LandingPage {
   }
 
   async getFileContent(filePath) {
-    // In a real implementation, this would fetch the actual file content
-    // For this demo, we'll return placeholder content or actual content for key files
+    // First try to fetch the actual file content from the server
+    try {
+      const response = await fetch(filePath);
+      if (response.ok) {
+        return await response.text();
+      }
+    } catch (error) {
+      console.warn(`Could not fetch ${filePath} from server:`, error);
+    }
     
+    // Fallback to predefined content for key files
     const contentMap = {
       'manifest.json': `{
   "manifest_version": 3,
