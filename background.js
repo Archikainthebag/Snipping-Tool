@@ -77,11 +77,17 @@ class SnippingToolBackground {
           action: 'activate-snipping'
         });
       } catch (messageError) {
-        // If message fails, try to inject content script and then send message
+        // If message fails, try to inject content script and CSS, then send message
         console.log('Content script not found, injecting...');
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           files: ['content.js']
+        });
+        
+        // Also inject CSS to ensure overlay styles are available
+        await chrome.scripting.insertCSS({
+          target: { tabId: tab.id },
+          files: ['styles.css']
         });
         
         // Wait a bit for the script to initialize
@@ -93,7 +99,7 @@ class SnippingToolBackground {
           } catch (retryError) {
             console.error('Failed to activate snipping after injection:', retryError);
           }
-        }, 100);
+        }, 200); // Increased timeout slightly for CSS injection
       }
     } catch (error) {
       console.error('Error activating snipping:', error);
@@ -104,8 +110,8 @@ class SnippingToolBackground {
     this.isEnabled = !this.isEnabled;
     await chrome.storage.sync.set({ isEnabled: this.isEnabled });
     
-    // Update icon to reflect state
-    const iconPath = this.isEnabled ? 'icons/icon32.png' : 'icons/icon32-disabled.png';
+    // Update icon to reflect state (using regular icon since disabled icon doesn't exist)
+    const iconPath = 'icons/icon32.png';
     chrome.action.setIcon({ path: iconPath });
 
     // Notify all tabs
