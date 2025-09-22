@@ -343,13 +343,34 @@ class SnippingToolBackground {
     try {
       console.log('Download requested with filename:', filename);
       console.log('Image data format:', imageData.substring(0, 50) + '...');
+      console.log('Image data length:', imageData.length);
+      
+      // Validate input parameters
+      if (!imageData) {
+        throw new Error('No image data provided');
+      }
+      
+      if (!filename) {
+        throw new Error('No filename provided');
+      }
       
       // Ensure the filename is safe for download
       const safeFilename = filename.replace(/[<>:"/\\|?*]/g, '_');
       
       // For Manifest V3, we need to ensure the data URL is properly formatted
       if (!imageData.startsWith('data:image/')) {
-        throw new Error('Invalid image data format');
+        throw new Error('Invalid image data format - must be a data URL starting with data:image/');
+      }
+      
+      // Check if the data URL seems to have actual image data
+      if (imageData.length < 100) {
+        throw new Error('Image data appears to be too small or empty');
+      }
+      
+      // Verify we have downloads permission
+      const permissions = await chrome.permissions.getAll();
+      if (!permissions.permissions.includes('downloads')) {
+        throw new Error('Downloads permission not granted');
       }
       
       const downloadOptions = {
@@ -364,7 +385,30 @@ class SnippingToolBackground {
       const downloadId = await chrome.downloads.download(downloadOptions);
       
       console.log('Download initiated with ID:', downloadId);
-      return { success: true, downloadId };
+      
+      // Optionally listen for download completion
+      return new Promise((resolve) => {
+        const downloadListener = (delta) => {
+          if (delta.id === downloadId && delta.state) {
+            if (delta.state.current === 'complete') {
+              chrome.downloads.onChanged.removeListener(downloadListener);
+              resolve({ success: true, downloadId, status: 'completed' });
+            } else if (delta.state.current === 'interrupted') {
+              chrome.downloads.onChanged.removeListener(downloadListener);
+              resolve({ success: false, error: 'Download was interrupted', downloadId });
+            }
+          }
+        };
+        
+        chrome.downloads.onChanged.addListener(downloadListener);
+        
+        // Fallback timeout - resolve with basic success after 5 seconds if no status update
+        setTimeout(() => {
+          chrome.downloads.onChanged.removeListener(downloadListener);
+          resolve({ success: true, downloadId, status: 'initiated' });
+        }, 5000);
+      });
+      
     } catch (error) {
       console.error('Download failed:', error);
       return { success: false, error: error.message };

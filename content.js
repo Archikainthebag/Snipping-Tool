@@ -697,9 +697,12 @@ class SnippingTool {
     console.log('Starting download...');
     const screenshot = await this.captureScreenshot();
     if (!screenshot) {
-      console.log('No screenshot to download');
+      console.log('No screenshot to download - captureScreenshot returned null/undefined');
+      this.showNotification('No screenshot captured. Please select an area first.', 'error');
       return;
     }
+
+    console.log('Screenshot captured successfully, data length:', screenshot.length);
 
     try {
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
@@ -724,12 +727,44 @@ class SnippingTool {
         throw new Error(errorMessage);
       }
     } catch (error) {
-      console.error('Failed to download screenshot:', error);
-      this.showNotification('Failed to download screenshot', 'error');
-      this.playSound('error');
+      console.error('Failed to download screenshot via background script:', error);
+      console.log('Attempting fallback download method...');
+      
+      // Fallback: Try direct download using anchor element
+      try {
+        await this.downloadScreenshotFallback(screenshot, filename);
+        this.showNotification('Screenshot downloaded!');
+        this.playSuccessAnimation();
+        this.playSound('success');
+      } catch (fallbackError) {
+        console.error('Fallback download also failed:', fallbackError);
+        this.showNotification('Failed to download screenshot. Please try again.', 'error');
+        this.playSound('error');
+      }
     }
 
     this.deactivate();
+  }
+
+  // Fallback download method using anchor element
+  async downloadScreenshotFallback(imageData, filename) {
+    return new Promise((resolve, reject) => {
+      try {
+        const link = document.createElement('a');
+        link.href = imageData;
+        link.download = filename;
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('Fallback download initiated');
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   showNotification(message, type = 'success') {
