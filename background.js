@@ -77,18 +77,21 @@ class SnippingToolBackground {
         await chrome.tabs.sendMessage(tab.id, {
           action: 'activate-snipping'
         });
+        console.log('Activated snipping on existing content script');
       } catch (messageError) {
         // If message fails, try to inject content script and CSS, then send message
         console.log('Content script not found, injecting...');
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ['content.js']
-        });
         
-        // Also inject CSS to ensure overlay styles are available
+        // First inject CSS to ensure overlay styles are available
         await chrome.scripting.insertCSS({
           target: { tabId: tab.id },
           files: ['styles.css']
+        });
+        
+        // Then inject the content script
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js']
         });
         
         // Wait a bit for the script to initialize
@@ -97,10 +100,23 @@ class SnippingToolBackground {
             await chrome.tabs.sendMessage(tab.id, {
               action: 'activate-snipping'
             });
+            console.log('Activated snipping on newly injected content script');
           } catch (retryError) {
             console.error('Failed to activate snipping after injection:', retryError);
+            
+            // One more retry with longer delay
+            setTimeout(async () => {
+              try {
+                await chrome.tabs.sendMessage(tab.id, {
+                  action: 'activate-snipping'
+                });
+                console.log('Activated snipping on final retry');
+              } catch (finalError) {
+                console.error('Final retry failed:', finalError);
+              }
+            }, 1000);
           }
-        }, 200); // Increased timeout slightly for CSS injection
+        }, 500); // Increased timeout for better reliability
       }
     } catch (error) {
       console.error('Error activating snipping:', error);

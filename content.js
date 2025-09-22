@@ -31,13 +31,26 @@ class SnippingTool {
       return true;
     });
 
+    // Wait for DOM to be ready before creating overlay
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        this.setupOverlay();
+      });
+    } else {
+      this.setupOverlay();
+    }
+  }
+  
+  setupOverlay() {
     // Check if already initialized to prevent duplicate overlays
     if (document.getElementById('snipping-tool-overlay')) {
       console.log('Snipping tool overlay already exists, using existing one');
       this.overlay = document.getElementById('snipping-tool-overlay');
       this.selection = this.overlay.querySelector('.snipping-selection');
       this.canvas = this.overlay.querySelector('.snipping-canvas');
-      this.ctx = this.canvas.getContext('2d');
+      if (this.canvas) {
+        this.ctx = this.canvas.getContext('2d');
+      }
       return;
     }
 
@@ -47,6 +60,16 @@ class SnippingTool {
       console.log('Snipping tool initialized successfully');
     } catch (error) {
       console.error('Failed to initialize snipping tool:', error);
+      // Retry after a short delay
+      setTimeout(() => {
+        try {
+          this.createOverlay();
+          this.bindEvents();
+          console.log('Snipping tool initialized successfully on retry');
+        } catch (retryError) {
+          console.error('Failed to initialize snipping tool on retry:', retryError);
+        }
+      }, 1000);
     }
   }
 
