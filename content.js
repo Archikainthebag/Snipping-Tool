@@ -520,21 +520,35 @@ class SnippingTool {
           const cropCanvas = document.createElement('canvas');
           const cropCtx = cropCanvas.getContext('2d');
           
+          // Get selection coordinates without border
           const left = Math.min(this.startX, this.endX);
           const top = Math.min(this.startY, this.endY);
           const width = Math.abs(this.endX - this.startX);
           const height = Math.abs(this.endY - this.startY);
           
-          console.log('Crop dimensions:', { left, top, width, height });
+          console.log('Original crop dimensions:', { left, top, width, height });
           
-          // Account for device pixel ratio
+          // Account for device pixel ratio for high DPI displays
           const devicePixelRatio = window.devicePixelRatio || 1;
-          const scaledLeft = left * devicePixelRatio;
-          const scaledTop = top * devicePixelRatio;
-          const scaledWidth = width * devicePixelRatio;
-          const scaledHeight = height * devicePixelRatio;
           
-          console.log('Scaled dimensions:', { scaledLeft, scaledTop, scaledWidth, scaledHeight, devicePixelRatio });
+          // Calculate the actual screenshot dimensions vs viewport dimensions
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          const screenshotScaleX = img.width / viewportWidth;
+          const screenshotScaleY = img.height / viewportHeight;
+          
+          // Apply the correct scaling based on screenshot vs viewport ratio
+          const scaledLeft = Math.round(left * screenshotScaleX);
+          const scaledTop = Math.round(top * screenshotScaleY);
+          const scaledWidth = Math.round(width * screenshotScaleX);
+          const scaledHeight = Math.round(height * screenshotScaleY);
+          
+          console.log('Corrected dimensions:', { 
+            scaledLeft, scaledTop, scaledWidth, scaledHeight, 
+            devicePixelRatio, screenshotScaleX, screenshotScaleY,
+            imgDimensions: { width: img.width, height: img.height },
+            viewportDimensions: { width: viewportWidth, height: viewportHeight }
+          });
           
           // Ensure dimensions are valid
           if (scaledWidth <= 0 || scaledHeight <= 0) {
@@ -542,15 +556,24 @@ class SnippingTool {
             return;
           }
           
+          // Set canvas to match the desired output size (not scaled)
           cropCanvas.width = scaledWidth;
           cropCanvas.height = scaledHeight;
           
+          // Disable image smoothing for crisp pixel-perfect cropping
+          cropCtx.imageSmoothingEnabled = false;
+          cropCtx.webkitImageSmoothingEnabled = false;
+          cropCtx.mozImageSmoothingEnabled = false;
+          cropCtx.msImageSmoothingEnabled = false;
+          
+          // Draw the cropped portion at full quality
           cropCtx.drawImage(
             img,
             scaledLeft, scaledTop, scaledWidth, scaledHeight,
             0, 0, scaledWidth, scaledHeight
           );
           
+          // Export at maximum quality
           resolve(cropCanvas.toDataURL('image/png'));
         } catch (error) {
           console.error('Error during cropping:', error);
@@ -729,6 +752,13 @@ class SnippingTool {
         const ctx = canvas.getContext('2d');
         canvas.width = img.width;
         canvas.height = img.height;
+        
+        // Disable image smoothing for crisp pixel-perfect output
+        ctx.imageSmoothingEnabled = false;
+        ctx.webkitImageSmoothingEnabled = false;
+        ctx.mozImageSmoothingEnabled = false;
+        ctx.msImageSmoothingEnabled = false;
+        
         ctx.drawImage(img, 0, 0);
         
         const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
