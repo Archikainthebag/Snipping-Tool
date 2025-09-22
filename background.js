@@ -299,13 +299,17 @@ class SnippingToolBackground {
 
   async downloadImage(imageData, filename, sendResponse) {
     try {
-      await chrome.downloads.download({
+      console.log('Download requested with filename:', filename);
+      console.log('Image data format:', imageData.substring(0, 50) + '...');
+      
+      const downloadId = await chrome.downloads.download({
         url: imageData,
         filename: filename || `snipping-tool-${Date.now()}.png`,
         saveAs: false
       });
       
-      sendResponse({ success: true });
+      console.log('Download initiated with ID:', downloadId);
+      sendResponse({ success: true, downloadId });
     } catch (error) {
       console.error('Download failed:', error);
       sendResponse({ success: false, error: error.message });
