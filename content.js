@@ -755,8 +755,8 @@ class SnippingTool {
       // Simple OCR using Tesseract.js (would need to be included)
       this.showNotification('Text extraction feature coming soon!', 'info');
       
-      // For now, just copy the screenshot
-      await this.saveToClipboard();
+      // Since clipboard is automatic, no need to manually call saveToClipboard
+      // The text would be processed and added to clipboard when OCR is implemented
     } catch (error) {
       console.error('OCR failed:', error);
       this.showNotification('Text extraction failed', 'error');
@@ -822,10 +822,8 @@ class SnippingTool {
 
     switch (e.key) {
       case 'c':
-        if (e.ctrlKey) {
-          e.preventDefault();
-          this.saveToClipboard();
-        }
+        // Ctrl+C no longer needed since clipboard is automatic
+        // Could repurpose for copy additional info or leave empty
         break;
       case 'd':
         if (e.ctrlKey) {
