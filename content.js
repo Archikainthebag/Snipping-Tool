@@ -17,6 +17,8 @@ class SnippingTool {
   }
 
   init() {
+    console.log('Initializing snipping tool content script');
+    
     // Listen for messages from background script
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       this.handleMessage(request, sender, sendResponse);
@@ -25,27 +27,45 @@ class SnippingTool {
 
     // Check if already initialized to prevent duplicate overlays
     if (document.getElementById('snipping-tool-overlay')) {
+      console.log('Snipping tool overlay already exists, using existing one');
+      this.overlay = document.getElementById('snipping-tool-overlay');
+      this.selection = this.overlay.querySelector('.snipping-selection');
+      this.canvas = this.overlay.querySelector('.snipping-canvas');
+      this.ctx = this.canvas.getContext('2d');
       return;
     }
 
-    this.createOverlay();
-    this.bindEvents();
+    try {
+      this.createOverlay();
+      this.bindEvents();
+      console.log('Snipping tool initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize snipping tool:', error);
+    }
   }
 
   handleMessage(request, sender, sendResponse) {
+    console.log('Content script received message:', request.action);
     switch (request.action) {
       case 'activate-snipping':
         if (this.isEnabled) {
+          console.log('Activating snipping tool');
           this.activate();
+        } else {
+          console.log('Snipping tool is disabled');
         }
         sendResponse({ success: true });
         break;
       case 'toggle-state':
         this.isEnabled = request.isEnabled;
+        console.log('Toggle state:', this.isEnabled);
         if (!this.isEnabled && this.isActive) {
           this.deactivate();
         }
         sendResponse({ success: true });
+        break;
+      case 'ping':
+        sendResponse({ success: true, active: this.isActive, enabled: this.isEnabled });
         break;
     }
   }
@@ -166,6 +186,9 @@ class SnippingTool {
     } else if (e.key === 'Enter' && this.hasSelection()) {
       this.saveToClipboard();
     }
+    
+    // Handle advanced keyboard shortcuts
+    this.handleAdvancedKeyboard(e);
   }
 
   updateSelection() {
@@ -222,11 +245,23 @@ class SnippingTool {
   }
 
   activate() {
-    if (this.isActive) return;
+    console.log('Activate method called, current state:', { isActive: this.isActive, isEnabled: this.isEnabled });
+    
+    if (this.isActive) {
+      console.log('Already active, skipping activation');
+      return;
+    }
+    
+    if (!this.overlay) {
+      console.error('Overlay not created, reinitializing...');
+      this.createOverlay();
+    }
     
     this.isActive = true;
     this.overlay.style.display = 'block';
     document.body.style.cursor = 'crosshair';
+    
+    console.log('Overlay should now be visible');
     
     // Reset selection
     this.selection.style.display = 'none';
@@ -239,6 +274,8 @@ class SnippingTool {
     // Show initial overlay
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    console.log('Snipping tool activated successfully');
   }
 
   deactivate() {
@@ -311,19 +348,41 @@ class SnippingTool {
     if (!screenshot) return;
 
     try {
-      const response = await chrome.runtime.sendMessage({
-        action: 'save-to-clipboard',
-        imageData: screenshot
-      });
-
-      if (response.success) {
+      // Try to use the Clipboard API directly in content script context
+      if (navigator.clipboard && navigator.clipboard.write) {
+        // Convert base64 to blob
+        const response = await fetch(screenshot);
+        const blob = await response.blob();
+        
+        // Use the modern Clipboard API
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        
         this.showNotification('Screenshot saved to clipboard!');
       } else {
-        throw new Error(response.error);
+        // Fallback for browsers without Clipboard API
+        throw new Error('Clipboard API not available');
       }
     } catch (error) {
       console.error('Failed to save to clipboard:', error);
-      this.showNotification('Failed to save to clipboard', 'error');
+      
+      // Try the background script approach as secondary fallback
+      try {
+        const response = await chrome.runtime.sendMessage({
+          action: 'save-to-clipboard',
+          imageData: screenshot
+        });
+
+        if (response.success) {
+          this.showNotification('Screenshot saved to clipboard!');
+        } else {
+          throw new Error(response.error);
+        }
+      } catch (fallbackError) {
+        console.error('Background clipboard fallback failed:', fallbackError);
+        this.showNotification('Failed to save to clipboard. Try downloading instead.', 'error');
+      }
     }
 
     this.deactivate();
@@ -621,6 +680,13 @@ class SnippingTool {
 }
 
 // Initialize the snipping tool
-if (!window.snippingTool) {
-  window.snippingTool = new SnippingTool();
+try {
+  if (!window.snippingTool) {
+    console.log('Creating new snipping tool instance');
+    window.snippingTool = new SnippingTool();
+  } else {
+    console.log('Snipping tool already exists');
+  }
+} catch (error) {
+  console.error('Failed to initialize snipping tool:', error);
 }

@@ -5,6 +5,7 @@
   "description": "Advanced browser snipping tool with modern dark teal design for capturing screenshots on any page",
   "permissions": [
     "activeTab",
+    "tabs",
     "storage",
     "downloads",
     "clipboardWrite"

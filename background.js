@@ -70,18 +70,33 @@ class SnippingToolBackground {
     if (!this.isEnabled) return;
 
     try {
-      // Inject content script if not already injected
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ['content.js']
-      });
-
-      // Send activation message
-      await chrome.tabs.sendMessage(tab.id, {
-        action: 'activate-snipping'
-      });
+      // Try to send activation message first
+      // If content script is already loaded, this will work
+      try {
+        await chrome.tabs.sendMessage(tab.id, {
+          action: 'activate-snipping'
+        });
+      } catch (messageError) {
+        // If message fails, try to inject content script and then send message
+        console.log('Content script not found, injecting...');
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js']
+        });
+        
+        // Wait a bit for the script to initialize
+        setTimeout(async () => {
+          try {
+            await chrome.tabs.sendMessage(tab.id, {
+              action: 'activate-snipping'
+            });
+          } catch (retryError) {
+            console.error('Failed to activate snipping after injection:', retryError);
+          }
+        }, 100);
+      }
     } catch (error) {
-      console.error('Error injecting content script:', error);
+      console.error('Error activating snipping:', error);
     }
   }
 
@@ -105,6 +120,14 @@ class SnippingToolBackground {
 
   async handleMessage(request, sender, sendResponse) {
     switch (request.action) {
+      case 'activate-snipping':
+        await this.activateSnippingOnCurrentTab();
+        sendResponse({ success: true });
+        break;
+      case 'toggle-snipping':
+        await this.toggleSnipping();
+        sendResponse({ success: true });
+        break;
       case 'capture-screenshot':
         await this.captureScreenshot(request, sender, sendResponse);
         await this.trackUsage('capture'); // Track usage
@@ -172,41 +195,19 @@ class SnippingToolBackground {
 
   async saveToClipboard(imageData, sendResponse) {
     try {
-      // Check if clipboard API is available
-      if (!navigator.clipboard || !navigator.clipboard.write) {
-        throw new Error('Clipboard API not available in this browser');
-      }
-
-      // Convert base64 to blob
-      const response = await fetch(imageData);
-      const blob = await response.blob();
-      
-      // Use the Clipboard API
-      await navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': blob })
-      ]);
-      
-      sendResponse({ success: true });
+      // For Manifest V3 service workers, we need to handle clipboard operations differently
+      // We'll send the image data back to the content script to handle clipboard operations
+      sendResponse({ 
+        success: true, 
+        action: 'handle-clipboard-in-content',
+        imageData: imageData 
+      });
     } catch (error) {
-      console.error('Clipboard save failed:', error);
-      
-      // Fallback: Create a temporary textarea with the data URL
-      try {
-        const textarea = document.createElement('textarea');
-        textarea.value = imageData;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        
-        sendResponse({ success: true, method: 'fallback' });
-      } catch (fallbackError) {
-        sendResponse({ 
-          success: false, 
-          error: 'Failed to save to clipboard. Please try downloading instead.',
-          details: error.message 
-        });
-      }
+      console.error('Clipboard save preparation failed:', error);
+      sendResponse({ 
+        success: false, 
+        error: 'Failed to prepare clipboard save. This may be due to browser security restrictions.' 
+      });
     }
   }
 
