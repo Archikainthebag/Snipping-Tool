@@ -199,12 +199,7 @@ class SnippingTool {
     toolbar.className = 'snipping-toolbar';
     toolbar.innerHTML = `
       <div class="toolbar-buttons">
-        <button class="toolbar-btn" id="save-clipboard" title="Save to Clipboard">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z"/>
-          </svg>
-        </button>
-        <button class="toolbar-btn" id="save-download" title="Download">
+        <button class="toolbar-btn" id="save-download" title="Save to File">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
           </svg>
@@ -222,10 +217,6 @@ class SnippingTool {
   }
 
   bindToolbarEvents(toolbar) {
-    toolbar.querySelector('#save-clipboard').addEventListener('click', () => {
-      this.saveToClipboard();
-    });
-
     toolbar.querySelector('#save-download').addEventListener('click', () => {
       this.downloadScreenshot();
     });
@@ -282,17 +273,24 @@ class SnippingTool {
     if (!this.isActive || !this.isSelecting) return;
     
     this.isSelecting = false;
-    this.showToolbar();
+    
+    // Auto-save to clipboard when selection is complete
+    if (this.hasSelection()) {
+      this.saveToClipboard();
+    } else {
+      this.showToolbar();
+    }
+    
     e.preventDefault();
   }
 
   onKeyDown(e) {
     if (!this.isActive) return;
-    
+
     if (e.key === 'Escape') {
       this.deactivate();
     } else if (e.key === 'Enter' && this.hasSelection()) {
-      this.saveToClipboard();
+      this.downloadScreenshot();
     }
     
     // Handle advanced keyboard shortcuts
@@ -592,6 +590,9 @@ class SnippingTool {
         this.showNotification('Screenshot saved to clipboard!');
         this.playSuccessAnimation();
         this.playSound('success');
+        
+        // Show toolbar to give user option to also save to file
+        this.showToolbar();
       } else {
         // Fallback for browsers without Clipboard API
         console.log('Clipboard API not available, trying fallback');
@@ -612,6 +613,9 @@ class SnippingTool {
           this.showNotification('Screenshot saved to clipboard!');
           this.playSuccessAnimation();
           this.playSound('success');
+          
+          // Show toolbar to give user option to also save to file
+          this.showToolbar();
         } else {
           throw new Error(response.error);
         }
@@ -619,10 +623,13 @@ class SnippingTool {
         console.error('Background clipboard fallback failed:', fallbackError);
         this.showNotification('Failed to save to clipboard. Try downloading instead.', 'error');
         this.playSound('error');
+        
+        // Show toolbar even if clipboard failed, so user can still save to file
+        this.showToolbar();
       }
     }
 
-    this.deactivate();
+    // Don't deactivate immediately - let user choose to save to file if they want
   }
 
   async downloadScreenshot() {

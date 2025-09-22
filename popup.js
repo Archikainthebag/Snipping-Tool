@@ -247,18 +247,18 @@ class SnippingToolPopup {
             <li><kbd>Ctrl+Shift+S</kbd> - Activate snipping tool</li>
             <li><kbd>Ctrl+Shift+T</kbd> - Toggle tool on/off</li>
             <li><kbd>Escape</kbd> - Cancel current selection</li>
-            <li><kbd>Enter</kbd> - Save selection to clipboard</li>
+            <li><kbd>Enter</kbd> - Save selection to file</li>
           </ul>
           
           <h4>Save Options:</h4>
           <ul>
-            <li><strong>Clipboard:</strong> Instantly copy to clipboard for pasting</li>
-            <li><strong>Download:</strong> Save as file to your Downloads folder</li>
-            <li><strong>Both:</strong> Copy to clipboard and download file</li>
+            <li><strong>Automatic Clipboard:</strong> Screenshots are instantly copied to clipboard for pasting</li>
+            <li><strong>Save to File:</strong> Optionally save as file to your Downloads folder</li>
           </ul>
           
           <h4>Tips:</h4>
           <ul>
+            <li>Screenshots automatically save to clipboard when you complete selection</li>
             <li>Works on any website or web page</li>
             <li>Captures exactly what you see on screen</li>
             <li>Modern glassy design with smooth animations</li>
