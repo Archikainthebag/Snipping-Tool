@@ -491,12 +491,18 @@ class SnippingTool {
 
     try {
       console.log('Hiding selection UI before screenshot...');
-      // Hide selection UI to prevent it from appearing in the screenshot
+      // Hide all UI elements to prevent them from appearing in the screenshot
       const wasSelectionVisible = this.selection.style.display !== 'none';
       const wasOverlayVisible = this.overlay.style.display !== 'none';
       
+      const toolbar = this.overlay.querySelector('.snipping-toolbar');
+      const wasToolbarVisible = toolbar && toolbar.style.display !== 'none';
+      
       this.selection.style.display = 'none';
       this.overlay.style.display = 'none';
+      if (toolbar) {
+        toolbar.style.display = 'none';
+      }
       
       // Small delay to ensure UI is hidden
       await new Promise(resolve => setTimeout(resolve, 50));
@@ -519,6 +525,9 @@ class SnippingTool {
         if (wasOverlayVisible) {
           this.overlay.style.display = 'block';
         }
+        if (toolbar && wasToolbarVisible) {
+          toolbar.style.display = 'block';
+        }
         
         return croppedImage;
       } else {
@@ -531,6 +540,10 @@ class SnippingTool {
       // Restore UI visibility on error
       this.selection.style.display = 'block';
       this.overlay.style.display = 'block';
+      const toolbar = this.overlay.querySelector('.snipping-toolbar');
+      if (toolbar) {
+        toolbar.style.display = 'block';
+      }
       
       this.showNotification('Failed to capture screenshot. Please try again.', 'error');
       return null;
