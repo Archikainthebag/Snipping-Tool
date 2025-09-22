@@ -71,55 +71,118 @@ class SnippingToolBackground {
     if (!this.isEnabled) return;
 
     try {
-      // Try to send activation message first
-      // If content script is already loaded, this will work
-      try {
+      // First try to ping existing content script
+      const contentScriptReady = await this.checkContentScriptReady(tab.id);
+      
+      if (contentScriptReady) {
+        // Content script is already loaded and ready
         await chrome.tabs.sendMessage(tab.id, {
           action: 'activate-snipping'
         });
         console.log('Activated snipping on existing content script');
-      } catch (messageError) {
-        // If message fails, try to inject content script and CSS, then send message
-        console.log('Content script not found, injecting...');
-        
-        // First inject CSS to ensure overlay styles are available
-        await chrome.scripting.insertCSS({
-          target: { tabId: tab.id },
-          files: ['styles.css']
-        });
-        
-        // Then inject the content script
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ['content.js']
-        });
-        
-        // Wait a bit for the script to initialize
-        setTimeout(async () => {
-          try {
-            await chrome.tabs.sendMessage(tab.id, {
-              action: 'activate-snipping'
-            });
-            console.log('Activated snipping on newly injected content script');
-          } catch (retryError) {
-            console.error('Failed to activate snipping after injection:', retryError);
-            
-            // One more retry with longer delay
-            setTimeout(async () => {
-              try {
-                await chrome.tabs.sendMessage(tab.id, {
-                  action: 'activate-snipping'
-                });
-                console.log('Activated snipping on final retry');
-              } catch (finalError) {
-                console.error('Final retry failed:', finalError);
-              }
-            }, 1000);
-          }
-        }, 500); // Increased timeout for better reliability
+        return;
       }
+
+      // Content script not ready, inject it
+      console.log('Content script not ready, injecting...');
+      await this.injectAndActivate(tab.id);
+      
     } catch (error) {
       console.error('Error activating snipping:', error);
+      // Optionally notify user of failure
+      this.notifyActivationFailure(tab.id);
+    }
+  }
+
+  async checkContentScriptReady(tabId) {
+    try {
+      const response = await chrome.tabs.sendMessage(tabId, {
+        action: 'ping'
+      });
+      return response && response.success;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async injectAndActivate(tabId) {
+    try {
+      // First inject CSS to ensure overlay styles are available
+      await chrome.scripting.insertCSS({
+        target: { tabId: tabId },
+        files: ['styles.css']
+      });
+      
+      // Then inject the content script
+      await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['content.js']
+      });
+      
+      // Wait for content script to initialize and verify it's ready
+      const maxAttempts = 10;
+      const delayMs = 200;
+      
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        
+        try {
+          const response = await chrome.tabs.sendMessage(tabId, {
+            action: 'ping'
+          });
+          
+          if (response && response.success) {
+            // Content script is ready, now activate
+            await chrome.tabs.sendMessage(tabId, {
+              action: 'activate-snipping'
+            });
+            console.log(`Activated snipping after ${attempt} attempts`);
+            return;
+          }
+        } catch (pingError) {
+          // Continue trying
+          console.log(`Attempt ${attempt}/${maxAttempts}: Content script not ready yet`);
+        }
+      }
+      
+      throw new Error('Content script failed to initialize after maximum attempts');
+      
+    } catch (error) {
+      console.error('Failed to inject and activate content script:', error);
+      throw error;
+    }
+  }
+
+  async notifyActivationFailure(tabId) {
+    try {
+      // Try to inject a simple notification script
+      await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        func: () => {
+          const notification = document.createElement('div');
+          notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ef4444;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 14px;
+            z-index: 2147483647;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+          `;
+          notification.textContent = 'Failed to activate snipping tool. Please try again.';
+          document.body.appendChild(notification);
+          
+          setTimeout(() => {
+            notification.remove();
+          }, 3000);
+        }
+      });
+    } catch (notificationError) {
+      console.warn('Could not show activation failure notification:', notificationError);
     }
   }
 

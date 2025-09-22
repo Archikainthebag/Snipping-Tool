@@ -31,13 +31,32 @@ class SnippingTool {
       return true;
     });
 
-    // Wait for DOM to be ready before creating overlay
+    // Initialize overlay immediately if DOM is ready, otherwise wait
+    this.initializeOverlay();
+  }
+  
+  initializeOverlay() {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         this.setupOverlay();
+        this.signalReady();
       });
     } else {
       this.setupOverlay();
+      this.signalReady();
+    }
+  }
+  
+  signalReady() {
+    // Signal to background script that content script is ready
+    try {
+      chrome.runtime.sendMessage({
+        action: 'content-script-ready'
+      }).catch(() => {
+        // Ignore errors - background script might not be listening
+      });
+    } catch (error) {
+      // Ignore messaging errors during initialization
     }
   }
   
@@ -60,14 +79,16 @@ class SnippingTool {
       console.log('Snipping tool initialized successfully');
     } catch (error) {
       console.error('Failed to initialize snipping tool:', error);
-      // Retry after a short delay
+      // Single retry with proper error handling
       setTimeout(() => {
         try {
-          this.createOverlay();
-          this.bindEvents();
-          console.log('Snipping tool initialized successfully on retry');
+          if (!document.getElementById('snipping-tool-overlay')) {
+            this.createOverlay();
+            this.bindEvents();
+            console.log('Snipping tool initialized successfully on retry');
+          }
         } catch (retryError) {
-          console.error('Failed to initialize snipping tool on retry:', retryError);
+          console.error('Failed to initialize snipping tool on retry - giving up:', retryError);
         }
       }, 1000);
     }
@@ -75,31 +96,57 @@ class SnippingTool {
 
   handleMessage(request, sender, sendResponse) {
     console.log('Content script received message:', request.action);
-    switch (request.action) {
-      case 'activate-snipping':
-        if (this.isEnabled) {
-          console.log('Activating snipping tool');
-          this.activate();
-        } else {
-          console.log('Snipping tool is disabled');
-        }
-        sendResponse({ success: true });
-        break;
-      case 'toggle-state':
-        this.isEnabled = request.isEnabled;
-        console.log('Toggle state:', this.isEnabled);
-        if (!this.isEnabled && this.isActive) {
-          this.deactivate();
-        }
-        sendResponse({ success: true });
-        break;
-      case 'set-color':
-        this.setSelectedColor(request.color);
-        sendResponse({ success: true });
-        break;
-      case 'ping':
-        sendResponse({ success: true, active: this.isActive, enabled: this.isEnabled });
-        break;
+    
+    try {
+      switch (request.action) {
+        case 'activate-snipping':
+          if (this.isEnabled) {
+            console.log('Activating snipping tool');
+            this.activate();
+            sendResponse({ success: true });
+          } else {
+            console.log('Snipping tool is disabled');
+            sendResponse({ success: false, reason: 'disabled' });
+          }
+          break;
+        case 'toggle-state':
+          this.isEnabled = request.isEnabled;
+          console.log('Toggle state:', this.isEnabled);
+          if (!this.isEnabled && this.isActive) {
+            this.deactivate();
+          }
+          sendResponse({ success: true });
+          break;
+        case 'set-color':
+          this.setSelectedColor(request.color);
+          sendResponse({ success: true });
+          break;
+        case 'ping':
+          // Verify overlay is properly initialized
+          const overlayReady = this.overlay && document.getElementById('snipping-tool-overlay');
+          sendResponse({ 
+            success: true, 
+            active: this.isActive, 
+            enabled: this.isEnabled,
+            overlayReady: !!overlayReady
+          });
+          break;
+        case 'settings-updated':
+          if (request.settings) {
+            this.settings = { ...this.settings, ...request.settings };
+            if (request.settings.selectedColor) {
+              this.setSelectedColor(request.settings.selectedColor);
+            }
+          }
+          sendResponse({ success: true });
+          break;
+        default:
+          console.warn('Unknown message action:', request.action);
+          sendResponse({ success: false, reason: 'unknown_action' });
+      }
+    } catch (error) {
+      console.error('Error handling message:', error);
+      sendResponse({ success: false, error: error.message });
     }
   }
 
@@ -352,9 +399,20 @@ class SnippingTool {
       this.createOverlay();
     }
     
+    // Verify overlay is in DOM
+    if (!document.getElementById('snipping-tool-overlay')) {
+      console.error('Overlay not found in DOM, recreating...');
+      this.createOverlay();
+    }
+    
     // Ensure canvas is properly sized
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    if (this.canvas) {
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+    } else {
+      console.error('Canvas not found, overlay may not be properly initialized');
+      return;
+    }
     
     this.isActive = true;
     this.overlay.style.display = 'block';
@@ -365,15 +423,19 @@ class SnippingTool {
     console.log('Overlay should now be visible');
     
     // Reset selection
-    this.selection.style.display = 'none';
+    if (this.selection) {
+      this.selection.style.display = 'none';
+    }
     const toolbar = this.overlay.querySelector('.snipping-toolbar');
     if (toolbar) {
       toolbar.style.display = 'none';
     }
     
     // Show initial overlay
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    if (this.ctx) {
+      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
     
     // Load settings and apply color
     this.loadSettings();
