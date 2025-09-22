@@ -12,6 +12,12 @@ class SnippingTool {
     this.isSelecting = false;
     this.canvas = null;
     this.ctx = null;
+    this.selectedColor = '#14b8a6'; // Default teal color
+    this.history = [];
+    this.settings = {
+      animationsEnabled: true,
+      soundEnabled: true
+    };
     
     this.init();
   }
@@ -64,6 +70,10 @@ class SnippingTool {
         }
         sendResponse({ success: true });
         break;
+      case 'set-color':
+        this.setSelectedColor(request.color);
+        sendResponse({ success: true });
+        break;
       case 'ping':
         sendResponse({ success: true, active: this.isActive, enabled: this.isEnabled });
         break;
@@ -71,10 +81,24 @@ class SnippingTool {
   }
 
   createOverlay() {
+    // Remove existing overlay if it exists
+    const existingOverlay = document.getElementById('snipping-tool-overlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+
     // Create main overlay
     this.overlay = document.createElement('div');
     this.overlay.id = 'snipping-tool-overlay';
     this.overlay.className = 'snipping-overlay';
+    
+    // Create canvas for drawing selection (must be first for proper layering)
+    this.canvas = document.createElement('canvas');
+    this.canvas.className = 'snipping-canvas';
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+    this.overlay.appendChild(this.canvas);
+    this.ctx = this.canvas.getContext('2d');
     
     // Create selection area
     this.selection = document.createElement('div');
@@ -84,13 +108,17 @@ class SnippingTool {
     // Create toolbar
     this.createToolbar();
 
-    // Create canvas for drawing selection
-    this.canvas = document.createElement('canvas');
-    this.canvas.className = 'snipping-canvas';
-    this.overlay.appendChild(this.canvas);
-    this.ctx = this.canvas.getContext('2d');
-
-    document.body.appendChild(this.overlay);
+    // Ensure overlay is added to body
+    if (document.body) {
+      document.body.appendChild(this.overlay);
+    } else {
+      // If body is not ready, wait for it
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.appendChild(this.overlay);
+      });
+    }
+    
+    console.log('Overlay created successfully');
   }
 
   createToolbar() {
@@ -220,10 +248,49 @@ class SnippingTool {
     // Clear selection area
     this.ctx.clearRect(selLeft, selTop, selWidth, selHeight);
     
-    // Draw selection border
-    this.ctx.strokeStyle = '#14b8a6'; // Teal color
+    // Draw selection border with selected color
+    this.ctx.strokeStyle = this.selectedColor;
     this.ctx.lineWidth = 2;
     this.ctx.strokeRect(selLeft, selTop, selWidth, selHeight);
+    
+    // Add corner indicators for better visibility
+    this.drawCornerIndicators(selLeft, selTop, selWidth, selHeight);
+  }
+  
+  drawCornerIndicators(selLeft, selTop, selWidth, selHeight) {
+    const cornerSize = 10;
+    const cornerThickness = 3;
+    
+    this.ctx.strokeStyle = this.selectedColor;
+    this.ctx.lineWidth = cornerThickness;
+    
+    // Top-left corner
+    this.ctx.beginPath();
+    this.ctx.moveTo(selLeft, selTop + cornerSize);
+    this.ctx.lineTo(selLeft, selTop);
+    this.ctx.lineTo(selLeft + cornerSize, selTop);
+    this.ctx.stroke();
+    
+    // Top-right corner
+    this.ctx.beginPath();
+    this.ctx.moveTo(selLeft + selWidth - cornerSize, selTop);
+    this.ctx.lineTo(selLeft + selWidth, selTop);
+    this.ctx.lineTo(selLeft + selWidth, selTop + cornerSize);
+    this.ctx.stroke();
+    
+    // Bottom-left corner
+    this.ctx.beginPath();
+    this.ctx.moveTo(selLeft, selTop + selHeight - cornerSize);
+    this.ctx.lineTo(selLeft, selTop + selHeight);
+    this.ctx.lineTo(selLeft + cornerSize, selTop + selHeight);
+    this.ctx.stroke();
+    
+    // Bottom-right corner
+    this.ctx.beginPath();
+    this.ctx.moveTo(selLeft + selWidth - cornerSize, selTop + selHeight);
+    this.ctx.lineTo(selLeft + selWidth, selTop + selHeight);
+    this.ctx.lineTo(selLeft + selWidth, selTop + selHeight - cornerSize);
+    this.ctx.stroke();
   }
 
   showToolbar() {
@@ -241,7 +308,12 @@ class SnippingTool {
   }
 
   hasSelection() {
-    return Math.abs(this.endX - this.startX) > 10 && Math.abs(this.endY - this.startY) > 10;
+    const width = Math.abs(this.endX - this.startX);
+    const height = Math.abs(this.endY - this.startY);
+    const minSize = 5; // Minimum 5 pixels in each dimension
+    const hasValidSelection = width > minSize && height > minSize;
+    console.log('Selection check:', { width, height, hasValidSelection });
+    return hasValidSelection;
   }
 
   activate() {
@@ -257,25 +329,43 @@ class SnippingTool {
       this.createOverlay();
     }
     
+    // Ensure canvas is properly sized
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+    
     this.isActive = true;
     this.overlay.style.display = 'block';
+    this.overlay.style.visibility = 'visible';
+    this.overlay.style.opacity = '1';
     document.body.style.cursor = 'crosshair';
     
     console.log('Overlay should now be visible');
     
     // Reset selection
     this.selection.style.display = 'none';
-    this.overlay.querySelector('.snipping-toolbar').style.display = 'none';
-    
-    // Resize canvas
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    const toolbar = this.overlay.querySelector('.snipping-toolbar');
+    if (toolbar) {
+      toolbar.style.display = 'none';
+    }
     
     // Show initial overlay
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     
+    // Load settings and apply color
+    this.loadSettings();
+    
     console.log('Snipping tool activated successfully');
+  }
+  
+  setSelectedColor(color) {
+    this.selectedColor = color;
+    console.log('Selection color changed to:', color);
+    
+    // Update selection border color in CSS
+    const style = this.selection.style;
+    style.borderColor = color;
+    style.boxShadow = `0 0 20px ${color}33, inset 0 0 20px ${color}1a`;
   }
 
   deactivate() {
@@ -290,66 +380,100 @@ class SnippingTool {
   }
 
   async captureScreenshot() {
-    if (!this.hasSelection()) return null;
+    if (!this.hasSelection()) {
+      console.log('No valid selection found');
+      return null;
+    }
 
     try {
+      console.log('Requesting screenshot from background script...');
       // Request screenshot from background script
       const response = await chrome.runtime.sendMessage({
         action: 'capture-screenshot'
       });
 
       if (response.success) {
-        return this.cropScreenshot(response.screenshot);
+        console.log('Screenshot received, cropping...');
+        const croppedImage = await this.cropScreenshot(response.screenshot);
+        console.log('Screenshot cropped successfully');
+        return croppedImage;
       } else {
+        console.error('Screenshot capture failed:', response.error);
         throw new Error(response.error);
       }
     } catch (error) {
       console.error('Failed to capture screenshot:', error);
+      this.showNotification('Failed to capture screenshot. Please try again.', 'error');
       return null;
     }
   }
 
   cropScreenshot(screenshotDataUrl) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
-        const cropCanvas = document.createElement('canvas');
-        const cropCtx = cropCanvas.getContext('2d');
-        
-        const left = Math.min(this.startX, this.endX);
-        const top = Math.min(this.startY, this.endY);
-        const width = Math.abs(this.endX - this.startX);
-        const height = Math.abs(this.endY - this.startY);
-        
-        // Account for device pixel ratio
-        const devicePixelRatio = window.devicePixelRatio || 1;
-        const scaledLeft = left * devicePixelRatio;
-        const scaledTop = top * devicePixelRatio;
-        const scaledWidth = width * devicePixelRatio;
-        const scaledHeight = height * devicePixelRatio;
-        
-        cropCanvas.width = scaledWidth;
-        cropCanvas.height = scaledHeight;
-        
-        cropCtx.drawImage(
-          img,
-          scaledLeft, scaledTop, scaledWidth, scaledHeight,
-          0, 0, scaledWidth, scaledHeight
-        );
-        
-        resolve(cropCanvas.toDataURL('image/png'));
+        try {
+          const cropCanvas = document.createElement('canvas');
+          const cropCtx = cropCanvas.getContext('2d');
+          
+          const left = Math.min(this.startX, this.endX);
+          const top = Math.min(this.startY, this.endY);
+          const width = Math.abs(this.endX - this.startX);
+          const height = Math.abs(this.endY - this.startY);
+          
+          console.log('Crop dimensions:', { left, top, width, height });
+          
+          // Account for device pixel ratio
+          const devicePixelRatio = window.devicePixelRatio || 1;
+          const scaledLeft = left * devicePixelRatio;
+          const scaledTop = top * devicePixelRatio;
+          const scaledWidth = width * devicePixelRatio;
+          const scaledHeight = height * devicePixelRatio;
+          
+          console.log('Scaled dimensions:', { scaledLeft, scaledTop, scaledWidth, scaledHeight, devicePixelRatio });
+          
+          // Ensure dimensions are valid
+          if (scaledWidth <= 0 || scaledHeight <= 0) {
+            reject(new Error('Invalid crop dimensions'));
+            return;
+          }
+          
+          cropCanvas.width = scaledWidth;
+          cropCanvas.height = scaledHeight;
+          
+          cropCtx.drawImage(
+            img,
+            scaledLeft, scaledTop, scaledWidth, scaledHeight,
+            0, 0, scaledWidth, scaledHeight
+          );
+          
+          resolve(cropCanvas.toDataURL('image/png'));
+        } catch (error) {
+          console.error('Error during cropping:', error);
+          reject(error);
+        }
       };
+      
+      img.onerror = () => {
+        reject(new Error('Failed to load screenshot image'));
+      };
+      
       img.src = screenshotDataUrl;
     });
   }
 
   async saveToClipboard() {
+    console.log('Starting clipboard save...');
     const screenshot = await this.captureScreenshot();
-    if (!screenshot) return;
+    if (!screenshot) {
+      console.log('No screenshot to save');
+      return;
+    }
 
     try {
       // Try to use the Clipboard API directly in content script context
       if (navigator.clipboard && navigator.clipboard.write) {
+        console.log('Using modern Clipboard API');
         // Convert base64 to blob
         const response = await fetch(screenshot);
         const blob = await response.blob();
@@ -360,8 +484,11 @@ class SnippingTool {
         ]);
         
         this.showNotification('Screenshot saved to clipboard!');
+        this.playSuccessAnimation();
+        this.playSound('success');
       } else {
         // Fallback for browsers without Clipboard API
+        console.log('Clipboard API not available, trying fallback');
         throw new Error('Clipboard API not available');
       }
     } catch (error) {
@@ -369,6 +496,7 @@ class SnippingTool {
       
       // Try the background script approach as secondary fallback
       try {
+        console.log('Trying background script clipboard fallback');
         const response = await chrome.runtime.sendMessage({
           action: 'save-to-clipboard',
           imageData: screenshot
@@ -376,12 +504,15 @@ class SnippingTool {
 
         if (response.success) {
           this.showNotification('Screenshot saved to clipboard!');
+          this.playSuccessAnimation();
+          this.playSound('success');
         } else {
           throw new Error(response.error);
         }
       } catch (fallbackError) {
         console.error('Background clipboard fallback failed:', fallbackError);
         this.showNotification('Failed to save to clipboard. Try downloading instead.', 'error');
+        this.playSound('error');
       }
     }
 
@@ -389,12 +520,18 @@ class SnippingTool {
   }
 
   async downloadScreenshot() {
+    console.log('Starting download...');
     const screenshot = await this.captureScreenshot();
-    if (!screenshot) return;
+    if (!screenshot) {
+      console.log('No screenshot to download');
+      return;
+    }
 
     try {
-      const filename = `snipping-tool-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const filename = `snipping-tool-${timestamp}.png`;
       
+      console.log('Requesting download via background script...');
       const response = await chrome.runtime.sendMessage({
         action: 'download-image',
         imageData: screenshot,
@@ -403,12 +540,15 @@ class SnippingTool {
 
       if (response.success) {
         this.showNotification('Screenshot downloaded!');
+        this.playSuccessAnimation();
+        this.playSound('success');
       } else {
         throw new Error(response.error);
       }
     } catch (error) {
       console.error('Failed to download screenshot:', error);
       this.showNotification('Failed to download screenshot', 'error');
+      this.playSound('error');
     }
 
     this.deactivate();
@@ -672,6 +812,11 @@ class SnippingTool {
       
       if (response.success) {
         this.settings = { ...this.settings, ...response.settings };
+        
+        // Apply selected color if available
+        if (response.settings && response.settings.selectedColor) {
+          this.setSelectedColor(response.settings.selectedColor);
+        }
       }
     } catch (error) {
       console.warn('Could not load settings:', error);

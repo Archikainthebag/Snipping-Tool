@@ -36,7 +36,8 @@ class SnippingToolBackground {
           theme: 'dark-teal',
           saveLocation: 'download',
           quality: 'high',
-          format: 'png'
+          format: 'png',
+          selectedColor: '#14b8a6'
         }
       });
     }

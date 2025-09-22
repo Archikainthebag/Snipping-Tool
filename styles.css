@@ -32,6 +32,7 @@
     0 0 20px rgba(20, 184, 166, 0.3),
     inset 0 0 20px rgba(20, 184, 166, 0.1);
   backdrop-filter: blur(1px);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .snipping-selection::before {

@@ -5,7 +5,8 @@ class SnippingToolPopup {
     this.settings = {
       saveLocation: 'clipboard',
       imageFormat: 'png',
-      imageQuality: 'high'
+      imageQuality: 'high',
+      selectedColor: '#14b8a6'
     };
     
     this.init();
@@ -55,6 +56,13 @@ class SnippingToolPopup {
       this.updateSetting('imageQuality', e.target.value);
     });
 
+    // Color selection
+    document.querySelectorAll('.color-option').forEach(option => {
+      option.addEventListener('click', () => {
+        this.selectColor(option.dataset.color);
+      });
+    });
+
     // Footer links
     document.getElementById('help-link').addEventListener('click', (e) => {
       e.preventDefault();
@@ -70,6 +78,31 @@ class SnippingToolPopup {
     document.addEventListener('keydown', (e) => {
       this.handleKeyboard(e);
     });
+  }
+  
+  async selectColor(color) {
+    // Update UI
+    document.querySelectorAll('.color-option').forEach(option => {
+      option.classList.remove('active');
+    });
+    document.querySelector(`[data-color="${color}"]`).classList.add('active');
+    
+    // Update settings
+    this.settings.selectedColor = color;
+    await this.updateSetting('selectedColor', color);
+    
+    // Send color to active tab's content script
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab) {
+        await chrome.tabs.sendMessage(tab.id, {
+          action: 'set-color',
+          color: color
+        });
+      }
+    } catch (error) {
+      console.log('Could not send color to content script:', error);
+    }
   }
 
   updateUI() {
@@ -95,6 +128,15 @@ class SnippingToolPopup {
     document.getElementById('save-location').value = this.settings.saveLocation || 'clipboard';
     document.getElementById('image-format').value = this.settings.imageFormat || 'png';
     document.getElementById('image-quality').value = this.settings.imageQuality || 'high';
+    
+    // Update color selection UI
+    const selectedColor = this.settings.selectedColor || '#14b8a6';
+    document.querySelectorAll('.color-option').forEach(option => {
+      option.classList.remove('active');
+      if (option.dataset.color === selectedColor) {
+        option.classList.add('active');
+      }
+    });
 
     // Update start button state
     const startButton = document.getElementById('start-snipping');
