@@ -712,12 +712,16 @@ class SnippingTool {
         filename: filename
       });
 
-      if (response.success) {
+      console.log('Download response received:', response);
+
+      if (response && response.success) {
         this.showNotification('Screenshot downloaded!');
         this.playSuccessAnimation();
         this.playSound('success');
       } else {
-        throw new Error(response.error);
+        const errorMessage = response?.error || 'Unknown error occurred during download';
+        console.error('Download failed:', errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Failed to download screenshot:', error);
