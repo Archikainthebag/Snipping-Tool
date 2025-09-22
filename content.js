@@ -14,6 +14,7 @@ class SnippingTool {
     this.ctx = null;
     this.selectedColor = '#14b8a6'; // Default teal color
     this.history = [];
+    this.eventsBound = false; // Track if events are already bound
     this.settings = {
       animationsEnabled: true,
       soundEnabled: true
@@ -70,6 +71,8 @@ class SnippingTool {
       if (this.canvas) {
         this.ctx = this.canvas.getContext('2d');
       }
+      // Make sure events are bound even for existing overlay
+      this.bindEvents();
       return;
     }
 
@@ -233,6 +236,11 @@ class SnippingTool {
   }
 
   bindEvents() {
+    // Prevent duplicate event binding
+    if (this.eventsBound) {
+      return;
+    }
+    
     // Mouse events for selection
     this.overlay.addEventListener('mousedown', (e) => this.onMouseDown(e));
     this.overlay.addEventListener('mousemove', (e) => this.onMouseMove(e));
@@ -243,6 +251,8 @@ class SnippingTool {
 
     // Prevent context menu on overlay
     this.overlay.addEventListener('contextmenu', (e) => e.preventDefault());
+    
+    this.eventsBound = true;
   }
 
   onMouseDown(e) {
@@ -294,37 +304,48 @@ class SnippingTool {
     const top = Math.min(this.startY, this.endY);
     const width = Math.abs(this.endX - this.startX);
     const height = Math.abs(this.endY - this.startY);
-
+    
     this.selection.style.left = left + 'px';
     this.selection.style.top = top + 'px';
     this.selection.style.width = width + 'px';
     this.selection.style.height = height + 'px';
     this.selection.style.display = 'block';
 
-    // Update canvas size and draw selection
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    // Only resize canvas if dimensions changed to avoid clearing
+    const currentWidth = window.innerWidth;
+    const currentHeight = window.innerHeight;
+    if (this.canvas.width !== currentWidth || this.canvas.height !== currentHeight) {
+      this.canvas.width = currentWidth;
+      this.canvas.height = currentHeight;
+    }
     
     this.drawOverlay(left, top, width, height);
   }
 
   drawOverlay(selLeft, selTop, selWidth, selHeight) {
+    if (!this.ctx) {
+      console.error('Canvas context not available');
+      return;
+    }
+    
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     
     // Draw dark overlay
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     
-    // Clear selection area
-    this.ctx.clearRect(selLeft, selTop, selWidth, selHeight);
-    
-    // Draw selection border with selected color
-    this.ctx.strokeStyle = this.selectedColor;
-    this.ctx.lineWidth = 2;
-    this.ctx.strokeRect(selLeft, selTop, selWidth, selHeight);
-    
-    // Add corner indicators for better visibility
-    this.drawCornerIndicators(selLeft, selTop, selWidth, selHeight);
+    // Clear selection area - only if we have valid dimensions
+    if (selWidth > 0 && selHeight > 0) {
+      this.ctx.clearRect(selLeft, selTop, selWidth, selHeight);
+      
+      // Draw selection border with selected color
+      this.ctx.strokeStyle = this.selectedColor;
+      this.ctx.lineWidth = 2;
+      this.ctx.strokeRect(selLeft, selTop, selWidth, selHeight);
+      
+      // Add corner indicators for better visibility
+      this.drawCornerIndicators(selLeft, selTop, selWidth, selHeight);
+    }
   }
   
   drawCornerIndicators(selLeft, selTop, selWidth, selHeight) {
