@@ -299,8 +299,6 @@ class SnippingToolBackground {
 
   async downloadImage(imageData, filename, sendResponse) {
     try {
-      const url = chrome.runtime.getURL('data:image/png;base64,' + imageData.split(',')[1]);
-      
       await chrome.downloads.download({
         url: imageData,
         filename: filename || `snipping-tool-${Date.now()}.png`,
