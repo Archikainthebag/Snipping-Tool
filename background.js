@@ -299,13 +299,30 @@ class SnippingToolBackground {
 
   async downloadImage(imageData, filename, sendResponse) {
     try {
-      await chrome.downloads.download({
-        url: imageData,
-        filename: filename || `snipping-tool-${Date.now()}.png`,
-        saveAs: false
-      });
+      console.log('Download requested with filename:', filename);
+      console.log('Image data format:', imageData.substring(0, 50) + '...');
       
-      sendResponse({ success: true });
+      // Ensure the filename is safe for download
+      const safeFilename = filename.replace(/[<>:"/\\|?*]/g, '_');
+      
+      // For Manifest V3, we need to ensure the data URL is properly formatted
+      if (!imageData.startsWith('data:image/')) {
+        throw new Error('Invalid image data format');
+      }
+      
+      const downloadOptions = {
+        url: imageData,
+        filename: safeFilename || `snipping-tool-${Date.now()}.png`,
+        saveAs: false,
+        conflictAction: 'uniquify' // Automatically rename if file exists
+      };
+      
+      console.log('Download options:', downloadOptions);
+      
+      const downloadId = await chrome.downloads.download(downloadOptions);
+      
+      console.log('Download initiated with ID:', downloadId);
+      sendResponse({ success: true, downloadId });
     } catch (error) {
       console.error('Download failed:', error);
       sendResponse({ success: false, error: error.message });

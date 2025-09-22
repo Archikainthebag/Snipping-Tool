@@ -490,6 +490,23 @@ class SnippingTool {
     }
 
     try {
+      console.log('Hiding selection UI before screenshot...');
+      // Hide all UI elements to prevent them from appearing in the screenshot
+      const wasSelectionVisible = this.selection.style.display !== 'none';
+      const wasOverlayVisible = this.overlay.style.display !== 'none';
+      
+      const toolbar = this.overlay.querySelector('.snipping-toolbar');
+      const wasToolbarVisible = toolbar && toolbar.style.display !== 'none';
+      
+      this.selection.style.display = 'none';
+      this.overlay.style.display = 'none';
+      if (toolbar) {
+        toolbar.style.display = 'none';
+      }
+      
+      // Small delay to ensure UI is hidden
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       console.log('Requesting screenshot from background script...');
       // Request screenshot from background script
       const response = await chrome.runtime.sendMessage({
@@ -500,6 +517,18 @@ class SnippingTool {
         console.log('Screenshot received, cropping...');
         const croppedImage = await this.cropScreenshot(response.screenshot);
         console.log('Screenshot cropped successfully');
+        
+        // Restore UI visibility if it was visible before
+        if (wasSelectionVisible) {
+          this.selection.style.display = 'block';
+        }
+        if (wasOverlayVisible) {
+          this.overlay.style.display = 'block';
+        }
+        if (toolbar && wasToolbarVisible) {
+          toolbar.style.display = 'block';
+        }
+        
         return croppedImage;
       } else {
         console.error('Screenshot capture failed:', response.error);
@@ -507,6 +536,15 @@ class SnippingTool {
       }
     } catch (error) {
       console.error('Failed to capture screenshot:', error);
+      
+      // Restore UI visibility on error
+      this.selection.style.display = 'block';
+      this.overlay.style.display = 'block';
+      const toolbar = this.overlay.querySelector('.snipping-toolbar');
+      if (toolbar) {
+        toolbar.style.display = 'block';
+      }
+      
       this.showNotification('Failed to capture screenshot. Please try again.', 'error');
       return null;
     }
