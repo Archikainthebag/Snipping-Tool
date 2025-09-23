@@ -15,6 +15,7 @@ class SnippingTool {
     this.selectedColor = '#14b8a6'; // Default teal color
     this.history = [];
     this.eventsBound = false; // Track if events are already bound
+    this.currentScreenshot = null; // Store current screenshot for reuse
     this.settings = {
       animationsEnabled: true,
       soundEnabled: true
@@ -288,8 +289,13 @@ class SnippingTool {
     if (!this.isActive) return;
 
     if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('ESC key pressed, deactivating snipping tool');
       this.deactivate();
     } else if (e.key === 'Enter' && this.hasSelection()) {
+      e.preventDefault();
+      e.stopPropagation();
       this.downloadScreenshot();
     }
     
@@ -478,9 +484,21 @@ class SnippingTool {
     this.overlay.style.display = 'none';
     document.body.style.cursor = '';
     
-    // Reset selection
+    // Reset selection and state
     this.selection.style.display = 'none';
-    this.overlay.querySelector('.snipping-toolbar').style.display = 'none';
+    const toolbar = this.overlay.querySelector('.snipping-toolbar');
+    if (toolbar) {
+      toolbar.style.display = 'none';
+    }
+    
+    // Clear current screenshot and selection coordinates for next use
+    this.currentScreenshot = null;
+    this.startX = 0;
+    this.startY = 0;
+    this.endX = 0;
+    this.endY = 0;
+    
+    console.log('Snipping tool deactivated and reset for next use');
   }
 
   async captureScreenshot() {
@@ -635,6 +653,9 @@ class SnippingTool {
       return;
     }
 
+    // Store the screenshot for potential download later
+    this.currentScreenshot = screenshot;
+
     try {
       // Try to use the Clipboard API directly in content script context
       if (navigator.clipboard && navigator.clipboard.write) {
@@ -648,6 +669,8 @@ class SnippingTool {
           new ClipboardItem({ 'image/png': blob })
         ]);
         
+        // Show immediate notification like PowerToys
+        this.showSystemNotification('Screenshot saved to clipboard!');
         this.showNotification('Screenshot saved to clipboard!');
         this.playSuccessAnimation();
         this.playSound('success');
@@ -671,6 +694,8 @@ class SnippingTool {
         });
 
         if (response.success) {
+          // Show immediate notification like PowerToys
+          this.showSystemNotification('Screenshot saved to clipboard!');
           this.showNotification('Screenshot saved to clipboard!');
           this.playSuccessAnimation();
           this.playSound('success');
@@ -682,6 +707,7 @@ class SnippingTool {
         }
       } catch (fallbackError) {
         console.error('Background clipboard fallback failed:', fallbackError);
+        this.showSystemNotification('Failed to save to clipboard. Try downloading instead.', 'error');
         this.showNotification('Failed to save to clipboard. Try downloading instead.', 'error');
         this.playSound('error');
         
@@ -695,14 +721,21 @@ class SnippingTool {
 
   async downloadScreenshot() {
     console.log('Starting download...');
-    const screenshot = await this.captureScreenshot();
+    
+    // Use stored screenshot if available, otherwise capture new one
+    let screenshot = this.currentScreenshot;
     if (!screenshot) {
-      console.log('No screenshot to download - captureScreenshot returned null/undefined');
-      this.showNotification('No screenshot captured. Please select an area first.', 'error');
-      return;
+      console.log('No stored screenshot, capturing new one...');
+      screenshot = await this.captureScreenshot();
+      if (!screenshot) {
+        console.log('No screenshot to download - captureScreenshot returned null/undefined');
+        this.showNotification('No screenshot captured. Please select an area first.', 'error');
+        return;
+      }
+      this.currentScreenshot = screenshot;
     }
 
-    console.log('Screenshot captured successfully, data length:', screenshot.length);
+    console.log('Screenshot ready for download, data length:', screenshot.length);
 
     try {
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
@@ -718,6 +751,7 @@ class SnippingTool {
       console.log('Download response received:', response);
 
       if (response && response.success) {
+        this.showSystemNotification('Screenshot downloaded!');
         this.showNotification('Screenshot downloaded!');
         this.playSuccessAnimation();
         this.playSound('success');
@@ -732,12 +766,16 @@ class SnippingTool {
       
       // Fallback: Try direct download using anchor element
       try {
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `snipping-tool-${timestamp}.png`;
         await this.downloadScreenshotFallback(screenshot, filename);
+        this.showSystemNotification('Screenshot downloaded!');
         this.showNotification('Screenshot downloaded!');
         this.playSuccessAnimation();
         this.playSound('success');
       } catch (fallbackError) {
         console.error('Fallback download also failed:', fallbackError);
+        this.showSystemNotification('Failed to download screenshot. Please try again.', 'error');
         this.showNotification('Failed to download screenshot. Please try again.', 'error');
         this.playSound('error');
       }
@@ -777,6 +815,137 @@ class SnippingTool {
     setTimeout(() => {
       notification.remove();
     }, 3000);
+  }
+
+  // PowerToys-style system notification
+  showSystemNotification(message, type = 'success') {
+    try {
+      // Try background script notification first (more reliable)
+      chrome.runtime.sendMessage({
+        action: 'show-system-notification',
+        title: 'Advanced Snipping Tool',
+        message: message,
+        type: type
+      }).then(response => {
+        if (response && response.success) {
+          return; // Background notification succeeded
+        }
+        throw new Error('Background notification failed');
+      }).catch(() => {
+        // Fallback to browser notification API
+        this.showBrowserNotification(message, type);
+      });
+
+    } catch (error) {
+      console.log('System notification failed, using fallback:', error);
+      this.showBrowserNotification(message, type);
+    }
+  }
+
+  // Browser notification API fallback
+  showBrowserNotification(message, type = 'success') {
+    try {
+      if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+          const notification = new Notification('Advanced Snipping Tool', {
+            body: message,
+            icon: chrome.runtime.getURL('icons/icon48.png'),
+            badge: chrome.runtime.getURL('icons/icon16.png'),
+            tag: 'snipping-tool-notification',
+            requireInteraction: false,
+            silent: false
+          });
+          
+          // Auto-close after 4 seconds
+          setTimeout(() => {
+            notification.close();
+          }, 4000);
+          
+          return;
+        } else if (Notification.permission !== 'denied') {
+          // Request permission for future notifications
+          Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+              this.showBrowserNotification(message, type);
+            } else {
+              this.showPowerToysStyleToast(message, type);
+            }
+          });
+          return;
+        }
+      }
+      
+      // Final fallback: Create a prominent toast-style notification
+      this.showPowerToysStyleToast(message, type);
+      
+    } catch (error) {
+      console.log('Browser notification failed, using toast:', error);
+      this.showPowerToysStyleToast(message, type);
+    }
+  }
+
+  // PowerToys-style toast notification as fallback
+  showPowerToysStyleToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `snipping-toast ${type}`;
+    
+    const iconColor = type === 'error' ? '#ef4444' : '#10b981';
+    const bgColor = type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)';
+    
+    toast.innerHTML = `
+      <div class="toast-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="${iconColor}">
+          ${type === 'error' 
+            ? '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>' 
+            : '<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>'}
+        </svg>
+      </div>
+      <div class="toast-message">${message}</div>
+    `;
+    
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: ${bgColor};
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 16px 20px;
+      color: ${iconColor};
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 2147483647;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 300px;
+      max-width: 400px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Trigger animation
+    requestAnimationFrame(() => {
+      toast.style.transform = 'translateY(0)';
+      toast.style.opacity = '1';
+    });
+    
+    // Auto-remove after 5 seconds with animation
+    setTimeout(() => {
+      toast.style.transform = 'translateY(100px)';
+      toast.style.opacity = '0';
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300);
+    }, 5000);
   }
 
   // Advanced feature: Screenshot history

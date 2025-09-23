@@ -228,6 +228,10 @@ class SnippingToolBackground {
           await this.trackUsage('download'); // Track usage
           sendResponse(downloadResult);
           break;
+        case 'show-system-notification':
+          this.showSystemNotification(request.title, request.message, request.type);
+          sendResponse({ success: true });
+          break;
         case 'get-settings':
           await this.getSettings(sendResponse);
           return; // getSettings handles the response
@@ -548,6 +552,41 @@ class SnippingToolBackground {
       source: `${baseUrl}/archive/refs/heads/main.zip`,
       releases: `${baseUrl}/releases`
     };
+  }
+
+  // PowerToys-style system notifications
+  showSystemNotification(title, message, type = 'success') {
+    try {
+      const iconPath = type === 'error' ? 'icons/icon48.png' : 'icons/icon48.png';
+      const notificationOptions = {
+        type: 'basic',
+        iconUrl: iconPath,
+        title: title || 'Advanced Snipping Tool',
+        message: message,
+        priority: 1,
+        requireInteraction: false,
+        silent: false
+      };
+
+      chrome.notifications.create(
+        'snipping-tool-' + Date.now(),
+        notificationOptions,
+        (notificationId) => {
+          if (chrome.runtime.lastError) {
+            console.log('System notification failed:', chrome.runtime.lastError.message);
+          } else {
+            console.log('System notification shown:', notificationId);
+            
+            // Auto-clear notification after 4 seconds
+            setTimeout(() => {
+              chrome.notifications.clear(notificationId);
+            }, 4000);
+          }
+        }
+      );
+    } catch (error) {
+      console.log('Failed to show system notification:', error);
+    }
   }
 }
 
