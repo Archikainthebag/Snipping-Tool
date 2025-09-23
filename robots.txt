@@ -1,0 +1,25 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://archikainthebag.github.io/Snipping-Tool/sitemap.xml
+
+# Crawl delay (optional)
+Crawl-delay: 1
+
+# Specific instructions for major search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+# Disallow temp and build directories
+Disallow: /temp/
+Disallow: /packages/
+Disallow: /node_modules/
+Disallow: /.git/
+Disallow: /.github/

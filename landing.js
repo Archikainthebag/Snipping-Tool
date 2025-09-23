@@ -263,7 +263,7 @@ HOW TO USE:
 - Press Escape to cancel anytime
 
 NEED HELP?
-Visit: https://github.com/Archikainthebag/Snipping-Tool
+Visit: <a href="https://github.com/Archikainthebag/Snipping-Tool" target="_blank" rel="noopener">https://github.com/Archikainthebag/Snipping-Tool</a>
 
 This extension is 100% safe and doesn't collect any personal data.
 All screenshots are processed locally on your computer.`
@@ -370,7 +370,7 @@ HOW TO USE:
    • Choose to save to clipboard or download
 
 NEED HELP?
-   Visit: https://github.com/Archikainthebag/Snipping-Tool
+   Visit: <a href="https://github.com/Archikainthebag/Snipping-Tool" target="_blank" rel="noopener">https://github.com/Archikainthebag/Snipping-Tool</a>
 
 🛡️ SAFETY GUARANTEE:
    ✓ 100% safe and secure
@@ -416,7 +416,7 @@ HOW TO USE:
    • Choose to save to clipboard or download
 
 NEED HELP?
-   Visit: https://github.com/Archikainthebag/Snipping-Tool
+   Visit: <a href="https://github.com/Archikainthebag/Snipping-Tool" target="_blank" rel="noopener">https://github.com/Archikainthebag/Snipping-Tool</a>
 
 🛡️ SAFETY GUARANTEE:
    ✓ 100% safe and secure
@@ -512,6 +512,11 @@ NEED HELP?
             <li>Ensure Developer Mode is ON</li>
             <li>Try restarting Chrome if problems persist</li>
           </ul>
+        </div>
+        
+        <div class="help-section">
+          <h5>🆘 Need More Help?</h5>
+          <p>Visit our <a href="https://github.com/Archikainthebag/Snipping-Tool" target="_blank" rel="noopener">GitHub Repository</a> for detailed guides or <a href="https://github.com/Archikainthebag/Snipping-Tool/issues" target="_blank" rel="noopener">report an issue</a> if you encounter problems.</p>
         </div>
         
         <div class="safety-guarantee">
