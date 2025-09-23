@@ -1,6 +1,9 @@
 // Advanced Snipping Tool Content Script
 class SnippingTool {
   constructor() {
+    // Clean up any existing instance first
+    this.cleanup();
+    
     this.isActive = false;
     this.isEnabled = true;
     this.overlay = null;
@@ -21,7 +24,31 @@ class SnippingTool {
       soundEnabled: true
     };
     
+    // Store event handler references for proper cleanup
+    this.mouseDownHandler = null;
+    this.mouseMoveHandler = null;
+    this.mouseUpHandler = null;
+    this.keyDownHandler = null;
+    this.contextMenuHandler = null;
+    
     this.init();
+  }
+
+  cleanup() {
+    // Remove any existing overlay
+    const existingOverlay = document.getElementById('snipping-tool-overlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+    
+    // Clean up any existing event listeners
+    if (window.snippingToolInstance) {
+      try {
+        window.snippingToolInstance.unbindEvents();
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    }
   }
 
   init() {
@@ -228,23 +255,48 @@ class SnippingTool {
   }
 
   bindEvents() {
-    // Prevent duplicate event binding
-    if (this.eventsBound) {
-      return;
-    }
+    // Remove any existing event listeners before binding new ones
+    this.unbindEvents();
     
     // Mouse events for selection
-    this.overlay.addEventListener('mousedown', (e) => this.onMouseDown(e));
-    this.overlay.addEventListener('mousemove', (e) => this.onMouseMove(e));
-    this.overlay.addEventListener('mouseup', (e) => this.onMouseUp(e));
+    this.mouseDownHandler = (e) => this.onMouseDown(e);
+    this.mouseMoveHandler = (e) => this.onMouseMove(e);
+    this.mouseUpHandler = (e) => this.onMouseUp(e);
+    this.keyDownHandler = (e) => this.onKeyDown(e);
+    this.contextMenuHandler = (e) => e.preventDefault();
+    
+    this.overlay.addEventListener('mousedown', this.mouseDownHandler);
+    this.overlay.addEventListener('mousemove', this.mouseMoveHandler);
+    this.overlay.addEventListener('mouseup', this.mouseUpHandler);
 
-    // Keyboard events
-    document.addEventListener('keydown', (e) => this.onKeyDown(e));
+    // Keyboard events - bind to document to ensure they work
+    document.addEventListener('keydown', this.keyDownHandler);
 
     // Prevent context menu on overlay
-    this.overlay.addEventListener('contextmenu', (e) => e.preventDefault());
+    this.overlay.addEventListener('contextmenu', this.contextMenuHandler);
     
     this.eventsBound = true;
+    console.log('Events bound successfully');
+  }
+
+  unbindEvents() {
+    if (this.eventsBound && this.overlay) {
+      // Remove mouse events
+      if (this.mouseDownHandler) {
+        this.overlay.removeEventListener('mousedown', this.mouseDownHandler);
+        this.overlay.removeEventListener('mousemove', this.mouseMoveHandler);
+        this.overlay.removeEventListener('mouseup', this.mouseUpHandler);
+        this.overlay.removeEventListener('contextmenu', this.contextMenuHandler);
+      }
+      
+      // Remove keyboard events
+      if (this.keyDownHandler) {
+        document.removeEventListener('keydown', this.keyDownHandler);
+      }
+      
+      this.eventsBound = false;
+      console.log('Events unbound successfully');
+    }
   }
 
   onMouseDown(e) {
@@ -286,14 +338,25 @@ class SnippingTool {
   }
 
   onKeyDown(e) {
+    // Always handle ESC, even if not officially "active" but overlay is visible
+    if (e.key === 'Escape') {
+      const overlayVisible = this.overlay && 
+                           this.overlay.style.display !== 'none' && 
+                           document.getElementById('snipping-tool-overlay');
+      
+      if (this.isActive || overlayVisible) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('ESC key pressed, deactivating snipping tool');
+        this.deactivate();
+        return;
+      }
+    }
+    
+    // Only handle other keys if officially active
     if (!this.isActive) return;
 
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log('ESC key pressed, deactivating snipping tool');
-      this.deactivate();
-    } else if (e.key === 'Enter' && this.hasSelection()) {
+    if (e.key === 'Enter' && this.hasSelection()) {
       e.preventDefault();
       e.stopPropagation();
       this.downloadScreenshot();
@@ -407,7 +470,15 @@ class SnippingTool {
     const height = Math.abs(this.endY - this.startY);
     const minSize = 5; // Minimum 5 pixels in each dimension
     const hasValidSelection = width > minSize && height > minSize;
-    console.log('Selection check:', { width, height, hasValidSelection });
+    console.log('Selection check:', { 
+      startX: this.startX, 
+      startY: this.startY, 
+      endX: this.endX, 
+      endY: this.endY,
+      width, 
+      height, 
+      hasValidSelection 
+    });
     return hasValidSelection;
   }
 
@@ -419,16 +490,8 @@ class SnippingTool {
       return;
     }
     
-    if (!this.overlay) {
-      console.error('Overlay not created, reinitializing...');
-      this.createOverlay();
-    }
-    
-    // Verify overlay is in DOM
-    if (!document.getElementById('snipping-tool-overlay')) {
-      console.error('Overlay not found in DOM, recreating...');
-      this.createOverlay();
-    }
+    // Always ensure we have a fresh overlay and proper setup
+    this.ensureOverlayReady();
     
     // Ensure canvas is properly sized
     if (this.canvas) {
@@ -439,6 +502,9 @@ class SnippingTool {
       return;
     }
     
+    // Reset all state for fresh activation
+    this.resetState();
+    
     this.isActive = true;
     this.overlay.style.display = 'block';
     this.overlay.style.visibility = 'visible';
@@ -447,7 +513,7 @@ class SnippingTool {
     
     console.log('Overlay should now be visible');
     
-    // Reset selection
+    // Reset selection UI
     if (this.selection) {
       this.selection.style.display = 'none';
     }
@@ -467,6 +533,40 @@ class SnippingTool {
     
     console.log('Snipping tool activated successfully');
   }
+
+  resetState() {
+    // Clear all selection state
+    this.isSelecting = false;
+    this.startX = 0;
+    this.startY = 0;
+    this.endX = 0;
+    this.endY = 0;
+    this.currentScreenshot = null;
+    
+    console.log('State reset for fresh activation');
+  }
+
+  ensureOverlayReady() {
+    // Check if overlay exists and is properly set up
+    const existingOverlay = document.getElementById('snipping-tool-overlay');
+    
+    if (!existingOverlay || !this.overlay) {
+      console.log('Creating new overlay...');
+      this.createOverlay();
+    } else {
+      // Overlay exists, ensure we have all references
+      this.overlay = existingOverlay;
+      this.selection = this.overlay.querySelector('.snipping-selection');
+      this.canvas = this.overlay.querySelector('.snipping-canvas');
+      if (this.canvas) {
+        this.ctx = this.canvas.getContext('2d');
+      }
+      
+      // Ensure events are bound
+      this.bindEvents();
+      console.log('Using existing overlay with fresh event binding');
+    }
+  }
   
   setSelectedColor(color) {
     this.selectedColor = color;
@@ -479,16 +579,31 @@ class SnippingTool {
   }
 
   deactivate() {
+    console.log('Deactivating snipping tool...');
+    
     this.isActive = false;
     this.isSelecting = false;
-    this.overlay.style.display = 'none';
+    
+    // Hide overlay
+    if (this.overlay) {
+      this.overlay.style.display = 'none';
+    }
+    
+    // Reset cursor
     document.body.style.cursor = '';
     
-    // Reset selection and state
-    this.selection.style.display = 'none';
-    const toolbar = this.overlay.querySelector('.snipping-toolbar');
+    // Reset selection and UI state
+    if (this.selection) {
+      this.selection.style.display = 'none';
+    }
+    const toolbar = this.overlay && this.overlay.querySelector('.snipping-toolbar');
     if (toolbar) {
       toolbar.style.display = 'none';
+    }
+    
+    // Clear canvas if it exists
+    if (this.ctx && this.canvas) {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
     
     // Clear current screenshot and selection coordinates for next use
@@ -502,28 +617,41 @@ class SnippingTool {
   }
 
   async captureScreenshot() {
+    console.log('captureScreenshot called', {
+      hasSelection: this.hasSelection(),
+      startX: this.startX,
+      startY: this.startY,
+      endX: this.endX,
+      endY: this.endY
+    });
+    
     if (!this.hasSelection()) {
       console.log('No valid selection found');
+      this.showNotification('Please select an area by drawing a rectangle first.', 'error');
       return null;
     }
 
     try {
       console.log('Hiding selection UI before screenshot...');
-      // Hide all UI elements to prevent them from appearing in the screenshot
-      const wasSelectionVisible = this.selection.style.display !== 'none';
-      const wasOverlayVisible = this.overlay.style.display !== 'none';
+      // Store visibility states
+      const overlayWasVisible = this.overlay && this.overlay.style.display !== 'none';
+      const selectionWasVisible = this.selection && this.selection.style.display !== 'none';
+      const toolbar = this.overlay && this.overlay.querySelector('.snipping-toolbar');
+      const toolbarWasVisible = toolbar && toolbar.style.display !== 'none';
       
-      const toolbar = this.overlay.querySelector('.snipping-toolbar');
-      const wasToolbarVisible = toolbar && toolbar.style.display !== 'none';
-      
-      this.selection.style.display = 'none';
-      this.overlay.style.display = 'none';
+      // Hide UI elements to prevent them from appearing in the screenshot
+      if (this.selection) {
+        this.selection.style.display = 'none';
+      }
+      if (this.overlay) {
+        this.overlay.style.display = 'none';
+      }
       if (toolbar) {
         toolbar.style.display = 'none';
       }
       
       // Small delay to ensure UI is hidden
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       console.log('Requesting screenshot from background script...');
       // Request screenshot from background script
@@ -531,34 +659,37 @@ class SnippingTool {
         action: 'capture-screenshot'
       });
 
-      if (response.success) {
+      // Restore UI visibility
+      if (overlayWasVisible && this.overlay) {
+        this.overlay.style.display = 'block';
+      }
+      if (selectionWasVisible && this.selection) {
+        this.selection.style.display = 'block';
+      }
+      if (toolbarWasVisible && toolbar) {
+        toolbar.style.display = 'block';
+      }
+
+      if (response && response.success) {
         console.log('Screenshot received, cropping...');
         const croppedImage = await this.cropScreenshot(response.screenshot);
-        console.log('Screenshot cropped successfully');
-        
-        // Restore UI visibility if it was visible before
-        if (wasSelectionVisible) {
-          this.selection.style.display = 'block';
-        }
-        if (wasOverlayVisible) {
-          this.overlay.style.display = 'block';
-        }
-        if (toolbar && wasToolbarVisible) {
-          toolbar.style.display = 'block';
-        }
-        
+        console.log('Screenshot cropped successfully, size:', croppedImage.length);
         return croppedImage;
       } else {
-        console.error('Screenshot capture failed:', response.error);
-        throw new Error(response.error);
+        console.error('Screenshot capture failed:', response?.error);
+        throw new Error(response?.error || 'Screenshot capture failed');
       }
     } catch (error) {
       console.error('Failed to capture screenshot:', error);
       
       // Restore UI visibility on error
-      this.selection.style.display = 'block';
-      this.overlay.style.display = 'block';
-      const toolbar = this.overlay.querySelector('.snipping-toolbar');
+      if (this.overlay) {
+        this.overlay.style.display = 'block';
+      }
+      if (this.selection) {
+        this.selection.style.display = 'block';
+      }
+      const toolbar = this.overlay && this.overlay.querySelector('.snipping-toolbar');
       if (toolbar) {
         toolbar.style.display = 'block';
       }
@@ -720,7 +851,19 @@ class SnippingTool {
   }
 
   async downloadScreenshot() {
-    console.log('Starting download...');
+    console.log('Starting download...', {
+      currentScreenshot: !!this.currentScreenshot,
+      hasSelection: this.hasSelection(),
+      isActive: this.isActive
+    });
+    
+    // Check if we have a valid selection first
+    if (!this.hasSelection()) {
+      console.log('No valid selection found for download');
+      this.showNotification('Please select an area by drawing a rectangle on the screen first.', 'error');
+      this.playSound('error');
+      return;
+    }
     
     // Use stored screenshot if available, otherwise capture new one
     let screenshot = this.currentScreenshot;
@@ -728,8 +871,9 @@ class SnippingTool {
       console.log('No stored screenshot, capturing new one...');
       screenshot = await this.captureScreenshot();
       if (!screenshot) {
-        console.log('No screenshot to download - captureScreenshot returned null/undefined');
-        this.showNotification('No screenshot captured. Please select an area first.', 'error');
+        console.log('Failed to capture screenshot');
+        this.showNotification('Failed to capture screenshot. Please try selecting the area again.', 'error');
+        this.playSound('error');
         return;
       }
       this.currentScreenshot = screenshot;
@@ -1213,9 +1357,9 @@ class SnippingTool {
 
 // Initialize the snipping tool
 try {
-  if (!window.snippingTool) {
+  if (!window.snippingToolInstance) {
     console.log('Creating new snipping tool instance');
-    window.snippingTool = new SnippingTool();
+    window.snippingToolInstance = new SnippingTool();
   } else {
     console.log('Snipping tool already exists');
   }

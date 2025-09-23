@@ -106,3 +106,7 @@ Thumbs.db
 
 # Temporary files during development
 temp/
+
+# Test files
+test-*.html
+test-*.js
