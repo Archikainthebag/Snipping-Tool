@@ -24,6 +24,10 @@ class SnippingTool {
       soundEnabled: true
     };
     
+    // Notification queue system to prevent overlapping
+    this.notificationQueue = [];
+    this.isShowingNotification = false;
+    
     // Store event handler references for proper cleanup
     this.mouseDownHandler = null;
     this.mouseMoveHandler = null;
@@ -227,11 +231,6 @@ class SnippingTool {
     toolbar.className = 'snipping-toolbar';
     toolbar.innerHTML = `
       <div class="toolbar-buttons">
-        <button class="toolbar-btn" id="save-download" title="Save to File">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
-          </svg>
-        </button>
         <button class="toolbar-btn" id="cancel-snip" title="Cancel">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
@@ -245,10 +244,6 @@ class SnippingTool {
   }
 
   bindToolbarEvents(toolbar) {
-    toolbar.querySelector('#save-download').addEventListener('click', () => {
-      this.downloadScreenshot();
-    });
-
     toolbar.querySelector('#cancel-snip').addEventListener('click', () => {
       this.deactivate();
     });
@@ -330,6 +325,8 @@ class SnippingTool {
     // Auto-save to clipboard when selection is complete
     if (this.hasSelection()) {
       this.saveToClipboard();
+      // Show guidance notification after selection is complete
+      this.showNotification('Press ENTER to save the screenshot to file', 'info');
     } else {
       this.showToolbar();
     }
@@ -950,6 +947,30 @@ class SnippingTool {
   }
 
   showNotification(message, type = 'success') {
+    // Add notification to queue
+    this.notificationQueue.push({ message, type });
+    
+    // Process queue if not already showing a notification
+    if (!this.isShowingNotification) {
+      this.processNotificationQueue();
+    }
+  }
+
+  processNotificationQueue() {
+    if (this.notificationQueue.length === 0) {
+      this.isShowingNotification = false;
+      return;
+    }
+
+    this.isShowingNotification = true;
+    const { message, type } = this.notificationQueue.shift();
+
+    // Remove any existing notifications first
+    const existingNotifications = document.querySelectorAll('.snipping-notification');
+    existingNotifications.forEach(notification => {
+      notification.remove();
+    });
+
     const notification = document.createElement('div');
     notification.className = `snipping-notification ${type}`;
     notification.textContent = message;
@@ -958,6 +979,10 @@ class SnippingTool {
     
     setTimeout(() => {
       notification.remove();
+      // Process next notification in queue after a small delay
+      setTimeout(() => {
+        this.processNotificationQueue();
+      }, 200);
     }, 3000);
   }
 
