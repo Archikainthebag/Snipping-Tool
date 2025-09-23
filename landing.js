@@ -497,7 +497,7 @@ NEED HELP?
           <ol>
             <li><strong>Download:</strong> Click the button above to get the extension package</li>
             <li><strong>Extract:</strong> Right-click the ZIP file → "Extract All"</li>
-            <li><strong>Open Extensions:</strong> Type <code>chrome://extensions/</code> in your address bar</li>
+            <li><strong>Open Extensions:</strong> Type <code><a href="chrome://extensions/" target="_blank" rel="noopener">chrome://extensions/</a></code> in your address bar or click the link</li>
             <li><strong>Enable Developer Mode:</strong> Toggle the switch in the top-right</li>
             <li><strong>Load Extension:</strong> Click "Load unpacked" → Select the extracted folder</li>
             <li><strong>Pin Extension:</strong> Click the puzzle icon 🧩 in toolbar → Pin the extension</li>
@@ -639,7 +639,7 @@ NEED HELP?
           <h5>Step 2: Install the Extension</h5>
           <ol>
             <li><strong>Extract:</strong> Right-click the ZIP file → "Extract All"</li>
-            <li><strong>Open Extensions:</strong> Type <code>chrome://extensions/</code> in your address bar</li>
+            <li><strong>Open Extensions:</strong> Type <code><a href="chrome://extensions/" target="_blank" rel="noopener">chrome://extensions/</a></code> in your address bar or click the link</li>
             <li><strong>Enable Developer Mode:</strong> Toggle the switch in the top-right</li>
             <li><strong>Load Extension:</strong> Click "Load unpacked" → Select the extracted folder</li>
             <li><strong>Pin Extension:</strong> Click the puzzle icon 🧩 in toolbar → Pin the extension</li>
@@ -669,7 +669,7 @@ NEED HELP?
       <h4>Chrome/Edge Installation:</h4>
       <ol>
         <li>Extract the downloaded ZIP file to a folder</li>
-        <li>Open Chrome/Edge and go to <code>chrome://extensions/</code></li>
+        <li>Open Chrome/Edge and go to <code><a href="chrome://extensions/" target="_blank" rel="noopener">chrome://extensions/</a></code> or click the link</li>
         <li>Turn ON "Developer mode" (top-right toggle)</li>
         <li>Click "Load unpacked" button</li>
         <li>Select the extracted folder</li>
