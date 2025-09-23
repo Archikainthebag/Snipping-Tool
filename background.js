@@ -205,64 +205,73 @@ class SnippingToolBackground {
   }
 
   async handleMessage(request, sender, sendResponse) {
-    switch (request.action) {
-      case 'activate-snipping':
-        await this.activateSnippingOnCurrentTab();
-        sendResponse({ success: true });
-        break;
-      case 'toggle-snipping':
-        await this.toggleSnipping();
-        sendResponse({ success: true });
-        break;
-      case 'capture-screenshot':
-        await this.captureScreenshot(request, sender, sendResponse);
-        await this.trackUsage('capture'); // Track usage
-        break;
-      case 'save-to-clipboard':
-        await this.saveToClipboard(request.imageData, sendResponse);
-        await this.trackUsage('clipboard'); // Track usage
-        break;
-      case 'download-image':
-        await this.downloadImage(request.imageData, request.filename, sendResponse);
-        await this.trackUsage('download'); // Track usage
-        break;
-      case 'get-settings':
-        await this.getSettings(sendResponse);
-        break;
-      case 'update-settings':
-        await this.updateSettings(request.settings, sendResponse);
-        break;
-      case 'save-history':
-        await this.saveHistory(request.history, sendResponse);
-        break;
-      case 'get-history':
-        await this.getHistory(sendResponse);
-        break;
-      case 'get-download-links':
-        try {
-          const links = await this.createDownloadLinks();
-          sendResponse({ success: true, links });
-        } catch (error) {
-          sendResponse({ success: false, error: error.message });
-        }
-        break;
-      case 'get-usage-stats':
-        try {
-          const result = await chrome.storage.local.get(['usageStats']);
-          sendResponse({ 
-            success: true, 
-            stats: result.usageStats || {
-              totalCaptures: 0,
-              clipboardSaves: 0,
-              fileSaves: 0,
-              lastUsed: null,
-              installDate: new Date().toISOString()
-            }
-          });
-        } catch (error) {
-          sendResponse({ success: false, error: error.message });
-        }
-        break;
+    try {
+      switch (request.action) {
+        case 'activate-snipping':
+          await this.activateSnippingOnCurrentTab();
+          sendResponse({ success: true });
+          break;
+        case 'toggle-snipping':
+          await this.toggleSnipping();
+          sendResponse({ success: true });
+          break;
+        case 'capture-screenshot':
+          await this.captureScreenshot(request, sender, sendResponse);
+          await this.trackUsage('capture'); // Track usage
+          return; // Don't call sendResponse again as captureScreenshot handles it
+        case 'save-to-clipboard':
+          await this.saveToClipboard(request.imageData, sendResponse);
+          await this.trackUsage('clipboard'); // Track usage
+          return; // Don't call sendResponse again as saveToClipboard handles it
+        case 'download-image':
+          const downloadResult = await this.downloadImageAsync(request.imageData, request.filename);
+          await this.trackUsage('download'); // Track usage
+          sendResponse(downloadResult);
+          break;
+        case 'get-settings':
+          await this.getSettings(sendResponse);
+          return; // getSettings handles the response
+        case 'update-settings':
+          await this.updateSettings(request.settings, sendResponse);
+          return; // updateSettings handles the response
+        case 'save-history':
+          await this.saveHistory(request.history, sendResponse);
+          return; // saveHistory handles the response
+        case 'get-history':
+          await this.getHistory(sendResponse);
+          return; // getHistory handles the response
+        case 'get-download-links':
+          try {
+            const links = await this.createDownloadLinks();
+            sendResponse({ success: true, links });
+          } catch (error) {
+            sendResponse({ success: false, error: error.message });
+          }
+          break;
+        case 'get-usage-stats':
+          try {
+            const result = await chrome.storage.local.get(['usageStats']);
+            sendResponse({ 
+              success: true, 
+              stats: result.usageStats || {
+                totalCaptures: 0,
+                clipboardSaves: 0,
+                fileSaves: 0,
+                lastUsed: null,
+                installDate: new Date().toISOString()
+              }
+            });
+          } catch (error) {
+            sendResponse({ success: false, error: error.message });
+          }
+          break;
+        default:
+          sendResponse({ success: false, error: 'Unknown action: ' + request.action });
+          break;
+      }
+    } catch (error) {
+      console.error('Error handling message:', error);
+      sendResponse({ success: false, error: error.message });
     }
   }
 
@@ -326,6 +335,83 @@ class SnippingToolBackground {
     } catch (error) {
       console.error('Download failed:', error);
       sendResponse({ success: false, error: error.message });
+    }
+  }
+
+  // New async version that returns a promise instead of using callback
+  async downloadImageAsync(imageData, filename) {
+    try {
+      console.log('Download requested with filename:', filename);
+      console.log('Image data format:', imageData.substring(0, 50) + '...');
+      console.log('Image data length:', imageData.length);
+      
+      // Validate input parameters
+      if (!imageData) {
+        throw new Error('No image data provided');
+      }
+      
+      if (!filename) {
+        throw new Error('No filename provided');
+      }
+      
+      // Ensure the filename is safe for download
+      const safeFilename = filename.replace(/[<>:"/\\|?*]/g, '_');
+      
+      // For Manifest V3, we need to ensure the data URL is properly formatted
+      if (!imageData.startsWith('data:image/')) {
+        throw new Error('Invalid image data format - must be a data URL starting with data:image/');
+      }
+      
+      // Check if the data URL seems to have actual image data
+      if (imageData.length < 100) {
+        throw new Error('Image data appears to be too small or empty');
+      }
+      
+      // Verify we have downloads permission
+      const permissions = await chrome.permissions.getAll();
+      if (!permissions.permissions.includes('downloads')) {
+        throw new Error('Downloads permission not granted');
+      }
+      
+      const downloadOptions = {
+        url: imageData,
+        filename: safeFilename || `snipping-tool-${Date.now()}.png`,
+        saveAs: false,
+        conflictAction: 'uniquify' // Automatically rename if file exists
+      };
+      
+      console.log('Download options:', downloadOptions);
+      
+      const downloadId = await chrome.downloads.download(downloadOptions);
+      
+      console.log('Download initiated with ID:', downloadId);
+      
+      // Optionally listen for download completion
+      return new Promise((resolve) => {
+        const downloadListener = (delta) => {
+          if (delta.id === downloadId && delta.state) {
+            if (delta.state.current === 'complete') {
+              chrome.downloads.onChanged.removeListener(downloadListener);
+              resolve({ success: true, downloadId, status: 'completed' });
+            } else if (delta.state.current === 'interrupted') {
+              chrome.downloads.onChanged.removeListener(downloadListener);
+              resolve({ success: false, error: 'Download was interrupted', downloadId });
+            }
+          }
+        };
+        
+        chrome.downloads.onChanged.addListener(downloadListener);
+        
+        // Fallback timeout - resolve with basic success after 5 seconds if no status update
+        setTimeout(() => {
+          chrome.downloads.onChanged.removeListener(downloadListener);
+          resolve({ success: true, downloadId, status: 'initiated' });
+        }, 5000);
+      });
+      
+    } catch (error) {
+      console.error('Download failed:', error);
+      return { success: false, error: error.message };
     }
   }
 
